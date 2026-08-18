@@ -6,6 +6,9 @@ project(SystemAnalyzer
     LANGUAGES CXX
 )
 
+include(CTest)
+enable_testing()
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -22,6 +25,11 @@ add_executable(system-analyzer
     cpp/src/platform/linux/LinuxFileEntryMapper.cpp
 )
 
+target_include_directories(system-analyzer
+    PRIVATE
+        cpp/include
+)
+
 add_executable(directory-size-aggregator-test
     cpp/tests/core/DirectorySizeAggregatorTest.cpp
     cpp/src/core/DirectorySizeAggregator.cpp
@@ -32,7 +40,7 @@ target_include_directories(directory-size-aggregator-test
         cpp/include
 )
 
-target_include_directories(system-analyzer
-    PRIVATE
-        cpp/include
+add_test(
+    NAME directory-size-aggregator
+    COMMAND directory-size-aggregator-test
 )
