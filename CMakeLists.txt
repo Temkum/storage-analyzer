@@ -17,8 +17,19 @@ endif()
 add_executable(system-analyzer
     cpp/src/main.cpp
     cpp/src/core/SystemInfo.cpp
+    cpp/src/core/DirectorySizeAggregator.cpp
     cpp/src/platform/linux/LinuxFileScanner.cpp
     cpp/src/platform/linux/LinuxFileEntryMapper.cpp
+)
+
+add_executable(directory-size-aggregator-test
+    cpp/tests/core/DirectorySizeAggregatorTest.cpp
+    cpp/src/core/DirectorySizeAggregator.cpp
+)
+
+target_include_directories(directory-size-aggregator-test
+    PRIVATE
+        cpp/include
 )
 
 target_include_directories(system-analyzer

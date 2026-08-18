@@ -1,5 +1,6 @@
 #include <iostream>
 
+#include "system_analyzer/core/DirectorySizeAggregator.hpp"
 #include "system_analyzer/platform/linux/LinuxFileScanner.hpp"
 
 namespace
@@ -32,14 +33,20 @@ namespace
 
 int main()
 {
+    using system_analyzer::core::DirectorySizeAggregator;
     using system_analyzer::platform::linux::LinuxFileScanner;
 
+    const std::filesystem::path root = "/tmp/system-analyzer-test";
+
     LinuxFileScanner scanner;
+    DirectorySizeAggregator aggregator;
 
     scanner.scan(
-        "/tmp/system-analyzer-test",
-        [](const system_analyzer::domain::FileEntry &entry)
+        root,
+        [&aggregator](const system_analyzer::domain::FileEntry &entry)
         {
+            aggregator.add(entry);
+
             std::cout
                 << fileTypeToString(entry.type)
                 << " | "
@@ -48,6 +55,20 @@ int main()
                 << entry.path
                 << '\n';
         });
+
+    std::cout << "\nDirectory sizes:\n";
+
+    std::cout
+        << root
+        << " = "
+        << aggregator.sizeOf(root)
+        << " bytes\n";
+
+    std::cout
+        << root / "subdir"
+        << " = "
+        << aggregator.sizeOf(root / "subdir")
+        << " bytes\n";
 
     return 0;
 }
