@@ -19,6 +19,7 @@ endif()
 
 add_executable(system-analyzer
     cpp/src/main.cpp
+    cpp/src/app/Application.cpp
     cpp/src/core/SystemInfo.cpp
     cpp/src/core/DirectorySizeAggregator.cpp
     cpp/src/platform/linux/LinuxFileScanner.cpp

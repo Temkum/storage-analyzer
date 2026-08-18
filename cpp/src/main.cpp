@@ -1,35 +1,7 @@
+#include <filesystem>
 #include <iostream>
 
-#include "system_analyzer/core/DirectorySizeAggregator.hpp"
-#include "system_analyzer/platform/linux/LinuxFileScanner.hpp"
-
-namespace
-{
-
-    const char *fileTypeToString(
-        system_analyzer::domain::FileType type)
-    {
-        using system_analyzer::domain::FileType;
-
-        switch (type)
-        {
-        case FileType::File:
-            return "FILE";
-
-        case FileType::Directory:
-            return "DIR";
-
-        case FileType::Symlink:
-            return "LINK";
-
-        case FileType::Other:
-            return "OTHER";
-        }
-
-        return "UNKNOWN";
-    }
-
-} // namespace
+#include "system_analyzer/app/Application.hpp"
 
 int main(int argc, char *argv[])
 {
@@ -53,42 +25,7 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    using system_analyzer::core::DirectorySizeAggregator;
-    using system_analyzer::platform::linux::LinuxFileScanner;
+    system_analyzer::app::Application application;
 
-    // const std::filesystem::path root = "/tmp/system-analyzer-test";
-
-    LinuxFileScanner scanner;
-    DirectorySizeAggregator aggregator;
-
-    scanner.scan(
-        root,
-        [&aggregator](const system_analyzer::domain::FileEntry &entry)
-        {
-            aggregator.add(entry);
-
-            std::cout
-                << fileTypeToString(entry.type)
-                << " | "
-                << entry.size
-                << " bytes | "
-                << entry.path
-                << '\n';
-        });
-
-    std::cout << "\nDirectory sizes:\n";
-
-    std::cout
-        << root
-        << " = "
-        << aggregator.sizeOf(root)
-        << " bytes\n";
-
-    std::cout
-        << root / "subdir"
-        << " = "
-        << aggregator.sizeOf(root / "subdir")
-        << " bytes\n";
-
-    return 0;
+    return application.run(root);
 }
