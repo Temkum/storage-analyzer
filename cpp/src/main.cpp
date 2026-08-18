@@ -3,6 +3,34 @@
 
 #include "system_analyzer/app/Application.hpp"
 
+namespace
+{
+
+    const char *fileTypeToString(
+        system_analyzer::domain::FileType type)
+    {
+        using system_analyzer::domain::FileType;
+
+        switch (type)
+        {
+        case FileType::File:
+            return "FILE";
+
+        case FileType::Directory:
+            return "DIR";
+
+        case FileType::Symlink:
+            return "LINK";
+
+        case FileType::Other:
+            return "OTHER";
+        }
+
+        return "UNKNOWN";
+    }
+
+} // namespace
+
 int main(int argc, char *argv[])
 {
     if (argc != 2)
@@ -27,5 +55,29 @@ int main(int argc, char *argv[])
 
     system_analyzer::app::Application application;
 
-    return application.run(root);
+    const auto result = application.scan(root);
+
+    for (const auto &entry : result.entries)
+    {
+        std::cout
+            << fileTypeToString(entry.type)
+            << " | "
+            << entry.size
+            << " bytes | "
+            << entry.path
+            << '\n';
+    }
+
+    std::cout << "\nDirectory sizes:\n";
+
+    for (const auto &directory : result.directories)
+    {
+        std::cout
+            << directory.path
+            << " = "
+            << directory.size
+            << " bytes\n";
+    }
+
+    return 0;
 }

@@ -1,75 +1,46 @@
 #include "system_analyzer/app/Application.hpp"
 
-#include <iostream>
-
 #include "system_analyzer/core/DirectorySizeAggregator.hpp"
 #include "system_analyzer/platform/linux/LinuxFileScanner.hpp"
 
-namespace {
+namespace system_analyzer::app
+{
 
-const char* fileTypeToString(
-    system_analyzer::domain::FileType type
-) {
-    using system_analyzer::domain::FileType;
+    domain::ScanResult Application::scan(
+        const std::filesystem::path &root)
+    {
+        using core::DirectorySizeAggregator;
+        using platform::linux::LinuxFileScanner;
 
-    switch (type) {
-        case FileType::File:
-            return "FILE";
+        domain::ScanResult result;
 
-        case FileType::Directory:
-            return "DIR";
+        LinuxFileScanner scanner;
+        DirectorySizeAggregator aggregator;
 
-        case FileType::Symlink:
-            return "LINK";
+        scanner.scan(
+            root,
+            [&result, &aggregator](
+                const domain::FileEntry &entry)
+            {
+                result.entries.push_back(entry);
+                aggregator.add(entry);
+            });
 
-        case FileType::Other:
-            return "OTHER";
-    }
+        for (const auto &entry : result.entries)
+        {
+            if (entry.type != domain::FileType::Directory)
+            {
+                continue;
+            }
 
-    return "UNKNOWN";
-}
-
-} // namespace
-
-namespace system_analyzer::app {
-
-int Application::run(const std::filesystem::path& root) {
-    using core::DirectorySizeAggregator;
-    using platform::linux::LinuxFileScanner;
-
-    LinuxFileScanner scanner;
-    DirectorySizeAggregator aggregator;
-
-    scanner.scan(
-        root,
-        [&aggregator](const domain::FileEntry& entry) {
-            aggregator.add(entry);
-
-            std::cout
-                << fileTypeToString(entry.type)
-                << " | "
-                << entry.size
-                << " bytes | "
-                << entry.path
-                << '\n';
+            result.directories.push_back({entry.path,
+                                          aggregator.sizeOf(entry.path)});
         }
-    );
 
-    std::cout << "\nDirectory sizes:\n";
+        result.directories.push_back({root,
+                                      aggregator.sizeOf(root)});
 
-    std::cout
-        << root
-        << " = "
-        << aggregator.sizeOf(root)
-        << " bytes\n";
-
-    std::cout
-        << root / "subdir"
-        << " = "
-        << aggregator.sizeOf(root / "subdir")
-        << " bytes\n";
-
-    return 0;
-}
+        return result;
+    }
 
 } // namespace system_analyzer::app

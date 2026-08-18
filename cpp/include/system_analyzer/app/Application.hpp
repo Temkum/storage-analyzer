@@ -2,13 +2,16 @@
 
 #include <filesystem>
 
+#include "system_analyzer/domain/ScanResult.hpp"
+
 namespace system_analyzer::app
 {
 
     class Application
     {
     public:
-        int run(const std::filesystem::path &root);
+        [[nodiscard]] domain::ScanResult scan(
+            const std::filesystem::path &root);
     };
 
 } // namespace system_analyzer::app
