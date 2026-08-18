@@ -41,6 +41,20 @@ target_include_directories(directory-size-aggregator-test
         cpp/include
 )
 
+add_executable(scan-result-test
+    cpp/tests/core/ScanResultTest.cpp
+)
+
+target_include_directories(scan-result-test
+    PRIVATE
+        cpp/include
+)
+
+add_test(
+    NAME scan-result
+    COMMAND scan-result-test
+)
+
 add_test(
     NAME directory-size-aggregator
     COMMAND directory-size-aggregator-test
