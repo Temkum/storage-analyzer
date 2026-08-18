@@ -3,6 +3,8 @@
 #include <filesystem>
 #include <system_error>
 
+#include "system_analyzer/platform/linux/LinuxFileEntryMapper.hpp"
+
 namespace system_analyzer::platform::linux
 {
 
@@ -30,18 +32,7 @@ namespace system_analyzer::platform::linux
 
             const auto &entry = *iterator;
 
-            domain::FileEntry fileEntry{
-                .path = entry.path(),
-                .type = entry.is_directory()
-                            ? domain::FileType::Directory
-                        : entry.is_symlink()
-                            ? domain::FileType::Symlink
-                        : entry.is_regular_file()
-                            ? domain::FileType::File
-                            : domain::FileType::Other,
-                .size = entry.is_regular_file(error)
-                            ? entry.file_size(error)
-                            : 0};
+            const auto fileEntry = LinuxFileEntryMapper::map(entry);
 
             callback(fileEntry);
 
