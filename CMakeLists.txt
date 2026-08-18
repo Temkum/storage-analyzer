@@ -17,6 +17,7 @@ endif()
 add_executable(system-analyzer
     cpp/src/main.cpp
     cpp/src/core/SystemInfo.cpp
+    cpp/src/platform/linux/LinuxFileScanner.cpp
 )
 
 target_include_directories(system-analyzer
