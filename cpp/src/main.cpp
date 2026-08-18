@@ -31,12 +31,32 @@ namespace
 
 } // namespace
 
-int main()
+int main(int argc, char *argv[])
 {
+    if (argc != 2)
+    {
+        std::cerr << "Usage: system-analyzer <directory>\n";
+        return 1;
+    }
+
+    const std::filesystem::path root = argv[1];
+
+    if (!std::filesystem::exists(root))
+    {
+        std::cerr << "Error: path does not exist: " << root << '\n';
+        return 1;
+    }
+
+    if (!std::filesystem::is_directory(root))
+    {
+        std::cerr << "Error: path is not a directory: " << root << '\n';
+        return 1;
+    }
+
     using system_analyzer::core::DirectorySizeAggregator;
     using system_analyzer::platform::linux::LinuxFileScanner;
 
-    const std::filesystem::path root = "/tmp/system-analyzer-test";
+    // const std::filesystem::path root = "/tmp/system-analyzer-test";
 
     LinuxFileScanner scanner;
     DirectorySizeAggregator aggregator;
