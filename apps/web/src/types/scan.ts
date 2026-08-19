@@ -16,6 +16,11 @@ export interface DirectorySize {
   size: number
 }
 
+export interface ScanError {
+  path: string
+  message: string
+}
+
 export interface ScanResult {
   rootPath: string
   totalSize: number
@@ -24,4 +29,5 @@ export interface ScanResult {
   entries: FileEntry[]
   directories: DirectorySize[]
   durationMs: number
+  errors: ScanError[]
 }
