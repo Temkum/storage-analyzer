@@ -24,6 +24,7 @@ add_executable(system-analyzer
     cpp/src/core/DirectorySizeAggregator.cpp
     cpp/src/platform/linux/LinuxFileScanner.cpp
     cpp/src/platform/linux/LinuxFileEntryMapper.cpp
+    cpp/src/serialization/ScanResultSerializer.cpp
 )
 
 target_include_directories(system-analyzer

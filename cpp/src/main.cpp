@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "system_analyzer/app/Application.hpp"
+#include "system_analyzer/serialization/ScanResultSerializer.hpp"
 
 namespace
 {
@@ -57,7 +58,14 @@ int main(int argc, char *argv[])
 
     const auto result = application.scan(root);
 
-    for (const auto &entry : result.entries)
+    const auto json =
+        system_analyzer::serialization::ScanResultSerializer::toJson(result);
+
+    std::cout << json << '\n';
+
+    return 0;
+
+    /* for (const auto &entry : result.entries)
     {
         std::cout
             << fileTypeToString(entry.type)
@@ -79,5 +87,5 @@ int main(int argc, char *argv[])
             << " bytes\n";
     }
 
-    return 0;
+    return 0; */
 }
