@@ -14,6 +14,7 @@ namespace system_analyzer::serialization
         json["totalSize"] = result.totalSize;
         json["fileCount"] = result.fileCount;
         json["directoryCount"] = result.directoryCount;
+        json["durationMs"] = result.durationMs;
 
         json["entries"] = nlohmann::json::array();
 

@@ -29,6 +29,7 @@ int main()
 
     assert(json.contains("entries"));
     assert(json.contains("directories"));
+    assert(json.contains("durationMs"));
 
     assert(json["entries"].size() == 1);
     assert(json["directories"].size() == 1);

@@ -25,6 +25,8 @@ namespace system_analyzer::domain
 
         std::uintmax_t directoryCount = 0;
 
+        std::uint64_t durationMs = 0;
+
         std::vector<FileEntry> entries;
 
         std::vector<DirectorySize> directories;

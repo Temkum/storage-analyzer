@@ -1,3 +1,4 @@
+#include <chrono>
 #include "system_analyzer/app/Application.hpp"
 
 #include "system_analyzer/core/DirectorySizeAggregator.hpp"
@@ -9,6 +10,8 @@ namespace system_analyzer::app
     domain::ScanResult Application::scan(
         const std::filesystem::path &root)
     {
+        const auto start = std::chrono::steady_clock::now();
+
         using core::DirectorySizeAggregator;
         using platform::linux::LinuxFileScanner;
 
@@ -56,6 +59,14 @@ namespace system_analyzer::app
 
         result.directories.push_back({root,
                                       result.totalSize});
+
+        const auto end = std::chrono::steady_clock::now();
+
+        result.durationMs =
+            static_cast<std::uint64_t>(
+                std::chrono::duration_cast<std::chrono::milliseconds>(
+                    end - start)
+                    .count());
 
         return result;
     }

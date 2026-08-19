@@ -23,4 +23,5 @@ export interface ScanResult {
   directoryCount: number
   entries: FileEntry[]
   directories: DirectorySize[]
+  durationMs: number
 }

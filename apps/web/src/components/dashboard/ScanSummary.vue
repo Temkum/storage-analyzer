@@ -39,6 +39,11 @@ function formatBytes(bytes: number): string {
         <span>Directories </span>
         <strong>{{ result.directoryCount }}</strong>
       </article>
+
+      <article>
+        <span>Scan Time </span>
+        <strong>{{ result.durationMs }} ms</strong>
+      </article>
     </div>
   </section>
 </template>
