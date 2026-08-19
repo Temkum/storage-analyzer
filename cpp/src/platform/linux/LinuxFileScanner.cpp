@@ -10,7 +10,8 @@ namespace system_analyzer::platform::linux
 
     void LinuxFileScanner::scan(
         const std::filesystem::path &root,
-        const EntryCallback &callback)
+        const EntryCallback &entryCallback,
+        const ErrorCallback &errorCallback)
     {
         std::error_code error;
 
@@ -21,10 +22,18 @@ namespace system_analyzer::platform::linux
 
         const std::filesystem::recursive_directory_iterator end;
 
+        if (error)
+        {
+            errorCallback(root, error);
+            return;
+        }
+
         while (iterator != end)
         {
             if (error)
             {
+                errorCallback(iterator->path(), error);
+
                 error.clear();
                 iterator.increment(error);
                 continue;
@@ -32,11 +41,17 @@ namespace system_analyzer::platform::linux
 
             const auto &entry = *iterator;
 
-            const auto fileEntry = LinuxFileEntryMapper::map(entry);
+            const auto fileEntry =
+                LinuxFileEntryMapper::map(entry);
 
-            callback(fileEntry);
+            entryCallback(fileEntry);
 
             iterator.increment(error);
+        }
+
+        if (error)
+        {
+            errorCallback(root, error);
         }
     }
 

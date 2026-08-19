@@ -42,6 +42,13 @@ namespace system_analyzer::app
                 default:
                     break;
                 }
+            },
+            [&result](
+                const std::filesystem::path &path,
+                const std::error_code &error)
+            {
+                result.errors.push_back({path.string(),
+                                         error.message()});
             });
 
         for (const auto &entry : result.entries)
