@@ -10,6 +10,11 @@ namespace system_analyzer::serialization
     {
         nlohmann::json json;
 
+        json["rootPath"] = result.rootPath.string();
+        json["totalSize"] = result.totalSize;
+        json["fileCount"] = result.fileCount;
+        json["directoryCount"] = result.directoryCount;
+
         json["entries"] = nlohmann::json::array();
 
         for (const auto &entry : result.entries)

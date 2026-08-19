@@ -13,11 +13,7 @@ const props = defineProps<{
   result: ScanResult
 }>()
 
-const totalSize = computed(() =>
-  props.result.entries
-    .filter((entry) => entry.type === FileType.File)
-    .reduce((total, entry) => total + entry.size, 0),
-)
+const totalSize = computed(() => props.result.totalSize)
 
 const segments = computed<StorageSegment[]>(() => {
   if (totalSize.value === 0) {

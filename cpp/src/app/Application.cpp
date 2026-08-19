@@ -13,6 +13,7 @@ namespace system_analyzer::app
         using platform::linux::LinuxFileScanner;
 
         domain::ScanResult result;
+        result.rootPath = root;
 
         LinuxFileScanner scanner;
         DirectorySizeAggregator aggregator;
@@ -24,6 +25,20 @@ namespace system_analyzer::app
             {
                 result.entries.push_back(entry);
                 aggregator.add(entry);
+
+                switch (entry.type)
+                {
+                case domain::FileType::File:
+                    ++result.fileCount;
+                    break;
+
+                case domain::FileType::Directory:
+                    ++result.directoryCount;
+                    break;
+
+                default:
+                    break;
+                }
             });
 
         for (const auto &entry : result.entries)
@@ -37,8 +52,10 @@ namespace system_analyzer::app
                                           aggregator.sizeOf(entry.path)});
         }
 
+        result.totalSize = aggregator.sizeOf(root);
+
         result.directories.push_back({root,
-                                      aggregator.sizeOf(root)});
+                                      result.totalSize});
 
         return result;
     }

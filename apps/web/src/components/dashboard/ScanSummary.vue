@@ -1,38 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import type { ScanResult } from '@/types/scan'
 
-import {
-  FileType,
-  type ScanResult,
-} from '@/types/scan'
-
-const props = defineProps<{
+defineProps<{
   result: ScanResult
 }>()
-
-const fileCount = computed(() =>
-  props.result.entries.filter(
-    (entry) => entry.type === FileType.File,
-  ).length,
-)
-
-const directoryCount = computed(() =>
-  props.result.entries.filter(
-    (entry) => entry.type === FileType.Directory,
-  ).length,
-)
-
-const totalSize = computed(() => {
-  if (props.result.directories.length === 0) {
-    return 0
-  }
-
-  return Math.max(
-    ...props.result.directories.map(
-      (directory) => directory.size,
-    ),
-  )
-})
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) {
@@ -56,17 +27,17 @@ function formatBytes(bytes: number): string {
     <div>
       <article>
         <span>Total Size </span>
-        <strong>{{ formatBytes(totalSize) }}</strong>
+        <strong>{{ formatBytes(result.totalSize) }}</strong>
       </article>
 
       <article>
         <span>Files </span>
-        <strong>{{ fileCount }}</strong>
+        <strong>{{ result.fileCount }}</strong>
       </article>
 
       <article>
         <span>Directories </span>
-        <strong>{{ directoryCount }}</strong>
+        <strong>{{ result.directoryCount }}</strong>
       </article>
     </div>
   </section>

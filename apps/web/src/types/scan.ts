@@ -17,6 +17,10 @@ export interface DirectorySize {
 }
 
 export interface ScanResult {
+  rootPath: string
+  totalSize: number
+  fileCount: number
+  directoryCount: number
   entries: FileEntry[]
   directories: DirectorySize[]
 }
