@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "system_analyzer/domain/FileEntry.hpp"
+#include "system_analyzer/domain/ScanError.hpp"
 
 namespace system_analyzer::domain
 {
@@ -30,6 +31,8 @@ namespace system_analyzer::domain
         std::vector<FileEntry> entries;
 
         std::vector<DirectorySize> directories;
+
+        std::vector<ScanError> errors;
     };
 
 } // namespace system_analyzer::domain

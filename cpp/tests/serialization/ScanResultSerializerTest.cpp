@@ -22,6 +22,9 @@ int main()
     result.directories.push_back({"/tmp",
                                   128});
 
+    result.errors.push_back({"/restricted",
+                             "Permission denied"});
+
     const std::string output =
         ScanResultSerializer::toJson(result);
 

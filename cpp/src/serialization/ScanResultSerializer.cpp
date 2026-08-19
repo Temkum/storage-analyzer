@@ -33,6 +33,14 @@ namespace system_analyzer::serialization
                                            {"size", directory.size}});
         }
 
+        json["errors"] = nlohmann::json::array();
+
+        for (const auto &error : result.errors)
+        {
+            json["errors"].push_back({{"path", error.path},
+                                      {"message", error.message}});
+        }
+
         return json.dump();
     }
 
