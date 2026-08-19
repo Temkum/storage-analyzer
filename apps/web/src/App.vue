@@ -1,22 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+
+import { useScanner } from '@/composables/useScanner'
 
 const path = ref('/tmp/system-analyzer-test')
-const result = ref('')
-const error = ref('')
 
-async function scan() {
-  result.value = ''
-  error.value = ''
+const { result, isScanning, error, scan } = useScanner()
 
-  try {
-    result.value = await invoke<string>('scan_directory', {
-      path: path.value,
-    })
-  } catch (err) {
-    error.value = String(err)
-  }
+async function handleScan() {
+  await scan(path.value)
 }
 </script>
 
@@ -24,16 +16,31 @@ async function scan() {
   <main>
     <h1>System Analyzer</h1>
 
-    <input v-model="path" />
+    <form @submit.prevent="handleScan">
+      <label for="directory">
+        Directory
+      </label>
 
-    <button @click="scan">
-      Scan Directory
-    </button>
+      <input
+        id="directory"
+        v-model="path"
+        type="text"
+        placeholder="/path/to/directory"
+        :disabled="isScanning"
+      />
 
-    <pre v-if="result">{{ result }}</pre>
+      <button
+        type="submit"
+        :disabled="isScanning || !path.trim()"
+      >
+        {{ isScanning ? 'Scanning...' : 'Scan Directory' }}
+      </button>
+    </form>
 
     <p v-if="error">
       {{ error }}
     </p>
+
+    <pre v-if="result">{{ JSON.stringify(result, null, 2) }}</pre>
   </main>
 </template>
