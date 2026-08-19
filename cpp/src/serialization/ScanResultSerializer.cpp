@@ -1,52 +1,33 @@
 #include "system_analyzer/serialization/ScanResultSerializer.hpp"
 
-#include <sstream>
+#include <nlohmann/json.hpp>
 
-namespace system_analyzer::serialization {
+namespace system_analyzer::serialization
+{
 
-std::string ScanResultSerializer::toJson(
-    const domain::ScanResult& result
-) {
-    std::ostringstream json;
+    std::string ScanResultSerializer::toJson(
+        const domain::ScanResult &result)
+    {
+        nlohmann::json json;
 
-    json << "{";
-    json << "\"entries\":[";
+        json["entries"] = nlohmann::json::array();
 
-    for (std::size_t i = 0; i < result.entries.size(); ++i) {
-        const auto& entry = result.entries[i];
-
-        if (i > 0) {
-            json << ",";
+        for (const auto &entry : result.entries)
+        {
+            json["entries"].push_back({{"path", entry.path.string()},
+                                       {"type", static_cast<int>(entry.type)},
+                                       {"size", entry.size}});
         }
 
-        json << "{";
-        json << "\"path\":\"" << entry.path.string() << "\",";
-        json << "\"size\":" << entry.size;
-        json << "}";
-    }
+        json["directories"] = nlohmann::json::array();
 
-    json << "],";
-
-    json << "\"directories\":[";
-
-    for (std::size_t i = 0; i < result.directories.size(); ++i) {
-        const auto& directory = result.directories[i];
-
-        if (i > 0) {
-            json << ",";
+        for (const auto &directory : result.directories)
+        {
+            json["directories"].push_back({{"path", directory.path.string()},
+                                           {"size", directory.size}});
         }
 
-        json << "{";
-        json << "\"path\":\"" << directory.path.string() << "\",";
-        json << "\"size\":" << directory.size;
-        json << "}";
+        return json.dump();
     }
-
-    json << "]";
-
-    json << "}";
-
-    return json.str();
-}
 
 } // namespace system_analyzer::serialization
