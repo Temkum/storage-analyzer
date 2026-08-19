@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import LargestFiles from '@/components/dashboard/LargestFiles.vue'
 import ScanSummary from '@/components/dashboard/ScanSummary.vue'
 import { useScanner } from '@/composables/useScanner'
 
@@ -48,6 +49,11 @@ async function handleScan() {
     </p>
 
     <ScanSummary
+      v-if="result"
+      :result="result"
+    />
+
+    <LargestFiles
       v-if="result"
       :result="result"
     />
