@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import ScanSummary from '@/components/dashboard/ScanSummary.vue'
 import { useScanner } from '@/composables/useScanner'
 
 const path = ref('/tmp/system-analyzer-test')
 
-const { result, isScanning, error, scan } = useScanner()
+const {
+  result,
+  isScanning,
+  error,
+  scan,
+} = useScanner()
 
 async function handleScan() {
   await scan(path.value)
@@ -41,6 +47,9 @@ async function handleScan() {
       {{ error }}
     </p>
 
-    <pre v-if="result">{{ JSON.stringify(result, null, 2) }}</pre>
+    <ScanSummary
+      v-if="result"
+      :result="result"
+    />
   </main>
 </template>

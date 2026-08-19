@@ -1,25 +1,38 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import type { ScanResult } from '@/types/scan'
+import {
+  FileType,
+  type ScanResult,
+} from '@/types/scan'
 
 const props = defineProps<{
   result: ScanResult
 }>()
 
 const fileCount = computed(() =>
-  props.result.entries.filter((entry) => entry.type === 0).length,
+  props.result.entries.filter(
+    (entry) => entry.type === FileType.File,
+  ).length,
 )
 
 const directoryCount = computed(() =>
-  props.result.directories.length,
+  props.result.entries.filter(
+    (entry) => entry.type === FileType.Directory,
+  ).length,
 )
 
-const totalSize = computed(() =>
-  props.result.directories.length > 0
-    ? props.result.directories[props.result.directories.length - 1].size
-    : 0,
-)
+const totalSize = computed(() => {
+  if (props.result.directories.length === 0) {
+    return 0
+  }
+
+  return Math.max(
+    ...props.result.directories.map(
+      (directory) => directory.size,
+    ),
+  )
+})
 
 function formatBytes(bytes: number): string {
   if (bytes === 0) {
@@ -27,7 +40,10 @@ function formatBytes(bytes: number): string {
   }
 
   const units = ['B', 'KB', 'MB', 'GB', 'TB']
-  const index = Math.floor(Math.log(bytes) / Math.log(1024))
+  const index = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  )
 
   return `${(bytes / Math.pow(1024, index)).toFixed(2)} ${units[index]}`
 }
