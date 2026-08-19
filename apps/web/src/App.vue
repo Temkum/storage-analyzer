@@ -4,6 +4,7 @@ import { ref } from 'vue'
 import LargestFiles from '@/components/dashboard/LargestFiles.vue'
 import ScanSummary from '@/components/dashboard/ScanSummary.vue'
 import { useScanner } from '@/composables/useScanner'
+import DirectoryBreakdown from '@/components/dashboard/DirectoryBreakdown.vue'
 
 const path = ref('/tmp/system-analyzer-test')
 
@@ -54,6 +55,11 @@ async function handleScan() {
     />
 
     <LargestFiles
+      v-if="result"
+      :result="result"
+    />
+
+    <DirectoryBreakdown
       v-if="result"
       :result="result"
     />
