@@ -60,3 +60,18 @@ add_test(
     NAME directory-size-aggregator
     COMMAND directory-size-aggregator-test
 )
+
+add_executable(scan-result-serializer-test
+    cpp/tests/serialization/ScanResultSerializerTest.cpp
+    cpp/src/serialization/ScanResultSerializer.cpp
+)
+
+target_include_directories(scan-result-serializer-test
+    PRIVATE
+        cpp/include
+)
+
+add_test(
+    NAME scan-result-serializer
+    COMMAND scan-result-serializer-test
+)
