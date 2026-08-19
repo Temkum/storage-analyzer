@@ -8,6 +8,7 @@ import LargestFiles from '@/components/dashboard/LargestFiles.vue'
 import ScanControls from '@/components/dashboard/ScanControls.vue'
 import ScanSummary from '@/components/dashboard/ScanSummary.vue'
 import { useScanner } from '@/composables/useScanner'
+import StorageUsage from '@/components/dashboard/StorageUsage.vue'
 
 const path = ref('/tmp/system-analyzer-test')
 
@@ -37,6 +38,8 @@ async function handleScan() {
 
     <template v-if="result">
       <ScanSummary :result="result" />
+
+      <StorageUsage :result="result" />
 
       <LargestFiles :result="result" />
 
