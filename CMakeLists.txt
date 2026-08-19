@@ -32,6 +32,18 @@ target_include_directories(system-analyzer
         cpp/include
 )
 
+# Stage the engine binary where Tauri expects it so `cargo tauri dev` always
+# runs a sidecar that matches the freshly-built C++ code.
+set(TAURI_BINARIES_DIR "${CMAKE_SOURCE_DIR}/apps/desktop/src-tauri/binaries")
+
+add_custom_command(
+    TARGET system-analyzer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:system-analyzer>
+        "${TAURI_BINARIES_DIR}/system-analyzer-${CMAKE_HOST_SYSTEM_PROCESSOR}-unknown-linux-gnu"
+    COMMENT "Staging sidecar binary for Tauri"
+)
+
 add_executable(directory-size-aggregator-test
     cpp/tests/core/DirectorySizeAggregatorTest.cpp
     cpp/src/core/DirectorySizeAggregator.cpp
