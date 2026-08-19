@@ -87,3 +87,19 @@ add_test(
     NAME scan-result-serializer
     COMMAND scan-result-serializer-test
 )
+
+add_executable(linux-file-scanner-test
+    cpp/tests/platform/LinuxFileScannerTest.cpp
+    cpp/src/platform/linux/LinuxFileScanner.cpp
+    cpp/src/platform/linux/LinuxFileEntryMapper.cpp
+)
+
+target_include_directories(linux-file-scanner-test
+    PRIVATE
+        cpp/include
+)
+
+add_test(
+    NAME linux-file-scanner
+    COMMAND linux-file-scanner-test
+)
