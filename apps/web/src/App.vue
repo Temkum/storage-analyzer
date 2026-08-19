@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import DashboardLayout from '@/components/layout/DashboardLayout.vue'
+import DirectoryBreakdown from '@/components/dashboard/DirectoryBreakdown.vue'
 import LargestFiles from '@/components/dashboard/LargestFiles.vue'
+import ScanControls from '@/components/dashboard/ScanControls.vue'
 import ScanSummary from '@/components/dashboard/ScanSummary.vue'
 import { useScanner } from '@/composables/useScanner'
-import DirectoryBreakdown from '@/components/dashboard/DirectoryBreakdown.vue'
 
 const path = ref('/tmp/system-analyzer-test')
 
@@ -21,47 +23,23 @@ async function handleScan() {
 </script>
 
 <template>
-  <main>
-    <h1>System Analyzer</h1>
-
-    <form @submit.prevent="handleScan">
-      <label for="directory">
-        Directory
-      </label>
-
-      <input
-        id="directory"
-        v-model="path"
-        type="text"
-        placeholder="/path/to/directory"
-        :disabled="isScanning"
-      />
-
-      <button
-        type="submit"
-        :disabled="isScanning || !path.trim()"
-      >
-        {{ isScanning ? 'Scanning...' : 'Scan Directory' }}
-      </button>
-    </form>
+  <DashboardLayout :scanning="isScanning">
+    <ScanControls
+      v-model:path="path"
+      :scanning="isScanning"
+      @scan="handleScan"
+    />
 
     <p v-if="error">
       {{ error }}
     </p>
 
-    <ScanSummary
-      v-if="result"
-      :result="result"
-    />
+    <template v-if="result">
+      <ScanSummary :result="result" />
 
-    <LargestFiles
-      v-if="result"
-      :result="result"
-    />
+      <LargestFiles :result="result" />
 
-    <DirectoryBreakdown
-      v-if="result"
-      :result="result"
-    />
-  </main>
+      <DirectoryBreakdown :result="result" />
+    </template>
+  </DashboardLayout>
 </template>

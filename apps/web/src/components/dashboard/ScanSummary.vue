@@ -55,17 +55,17 @@ function formatBytes(bytes: number): string {
 
     <div>
       <article>
-        <span>Total Size</span>
+        <span>Total Size </span>
         <strong>{{ formatBytes(totalSize) }}</strong>
       </article>
 
       <article>
-        <span>Files</span>
+        <span>Files </span>
         <strong>{{ fileCount }}</strong>
       </article>
 
       <article>
-        <span>Directories</span>
+        <span>Directories </span>
         <strong>{{ directoryCount }}</strong>
       </article>
     </div>
