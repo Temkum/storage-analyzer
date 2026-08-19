@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DirectoryBreakdown from '@/components/dashboard/DirectoryBreakdown.vue'
+import FileTypeBreakdown from '@/components/dashboard/FileTypeBreakdown.vue'
 import LargestFiles from '@/components/dashboard/LargestFiles.vue'
 import ScanControls from '@/components/dashboard/ScanControls.vue'
 import ScanSummary from '@/components/dashboard/ScanSummary.vue'
@@ -40,6 +41,8 @@ async function handleScan() {
       <LargestFiles :result="result" />
 
       <DirectoryBreakdown :result="result" />
+
+      <FileTypeBreakdown :result="result" />
     </template>
   </DashboardLayout>
 </template>
