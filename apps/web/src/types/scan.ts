@@ -29,6 +29,15 @@ export interface DiskUsage {
   usedBytes: number
 }
 
+export interface MountedVolume {
+  mountPoint: string
+  filesystem: string
+  totalBytes: number
+  freeBytes: number
+  availableBytes: number
+  usedBytes: number
+}
+
 export interface ScanResult {
   rootPath: string
   totalSize: number
@@ -39,4 +48,5 @@ export interface ScanResult {
   durationMs: number
   errors: ScanError[]
   diskUsage: DiskUsage
+  volumes: MountedVolume[]
 }

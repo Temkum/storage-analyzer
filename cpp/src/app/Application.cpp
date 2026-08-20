@@ -4,6 +4,7 @@
 #include "system_analyzer/core/DirectorySizeAggregator.hpp"
 #include "system_analyzer/platform/linux/LinuxDiskUsageProvider.hpp"
 #include "system_analyzer/platform/linux/LinuxFileScanner.hpp"
+#include "system_analyzer/platform/linux/LinuxVolumeProvider.hpp"
 
 namespace system_analyzer::app
 {
@@ -16,6 +17,7 @@ namespace system_analyzer::app
         using core::DirectorySizeAggregator;
         using platform::linux::LinuxDiskUsageProvider;
         using platform::linux::LinuxFileScanner;
+        using platform::linux::LinuxVolumeProvider;
 
         domain::ScanResult result;
         result.rootPath = root;
@@ -23,8 +25,10 @@ namespace system_analyzer::app
         LinuxFileScanner scanner;
         DirectorySizeAggregator aggregator;
         LinuxDiskUsageProvider diskUsageProvider;
+        LinuxVolumeProvider volumeProvider;
 
         result.diskUsage = diskUsageProvider.getUsage(root);
+        result.volumes = volumeProvider.getVolumes();
 
         scanner.scan(
             root,

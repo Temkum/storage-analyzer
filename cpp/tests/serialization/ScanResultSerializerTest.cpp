@@ -32,6 +32,14 @@ int main()
         350,
         600};
 
+    result.volumes = {
+        {"/",
+         "ext4",
+         10000,
+         4000,
+         3500,
+         6000}};
+
     const std::string output =
         ScanResultSerializer::toJson(result);
 
@@ -55,6 +63,14 @@ int main()
     assert(json["diskUsage"]["freeBytes"] == 400);
     assert(json["diskUsage"]["availableBytes"] == 350);
     assert(json["diskUsage"]["usedBytes"] == 600);
+
+    assert(json["volumes"].size() == 1);
+    assert(json["volumes"][0]["mountPoint"] == "/");
+    assert(json["volumes"][0]["filesystem"] == "ext4");
+    assert(json["volumes"][0]["totalBytes"] == 10000);
+    assert(json["volumes"][0]["freeBytes"] == 4000);
+    assert(json["volumes"][0]["availableBytes"] == 3500);
+    assert(json["volumes"][0]["usedBytes"] == 6000);
 
     return 0;
 }

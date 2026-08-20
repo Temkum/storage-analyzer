@@ -10,6 +10,7 @@ import ScanControls from '@/components/dashboard/ScanControls.vue'
 import ScanSummary from '@/components/dashboard/ScanSummary.vue'
 import { useScanner } from '@/composables/useScanner'
 import StorageUsage from '@/components/dashboard/StorageUsage.vue'
+import Volumes from '@/components/dashboard/Volumes.vue'
 import ScanWarnings from '@/components/dashboard/ScanWarnings.vue'
 
 const path = ref('/tmp/system-analyzer-test')
@@ -40,6 +41,8 @@ async function handleScan() {
       <ScanSummary :result="result" />
 
       <DiskUsage :result="result" />
+
+      <Volumes :result="result" />
 
       <StorageUsage :result="result" />
 

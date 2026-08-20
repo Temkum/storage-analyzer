@@ -22,6 +22,14 @@ export default defineConfigWithVueTs(
   vueTsConfigs.recommended,
 
   {
+    name: 'app/vue-rules',
+    rules: {
+      // The dashboard Volumes card is an intentionally single-word component.
+      'vue/multi-word-component-names': ['error', { ignores: ['Volumes'] }],
+    },
+  },
+
+  {
     ...pluginVitest.configs.recommended,
     files: ['src/**/__tests__/*'],
   },

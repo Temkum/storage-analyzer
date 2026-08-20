@@ -23,6 +23,18 @@ namespace system_analyzer::serialization
             {"availableBytes", result.diskUsage.availableBytes},
             {"usedBytes", result.diskUsage.usedBytes}};
 
+        json["volumes"] = nlohmann::json::array();
+
+        for (const auto &volume : result.volumes)
+        {
+            json["volumes"].push_back({{"mountPoint", volume.mountPoint.string()},
+                                       {"filesystem", volume.filesystem},
+                                       {"totalBytes", volume.totalBytes},
+                                       {"freeBytes", volume.freeBytes},
+                                       {"availableBytes", volume.availableBytes},
+                                       {"usedBytes", volume.usedBytes}});
+        }
+
         json["entries"] = nlohmann::json::array();
 
         for (const auto &entry : result.entries)
