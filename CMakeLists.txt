@@ -25,6 +25,7 @@ add_executable(system-analyzer
     cpp/src/platform/linux/LinuxFileScanner.cpp
     cpp/src/platform/linux/LinuxFileEntryMapper.cpp
     cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
+    cpp/src/platform/linux/LinuxVolumeProvider.cpp
     cpp/src/serialization/ScanResultSerializer.cpp
 )
 
@@ -118,4 +119,19 @@ target_include_directories(linux-disk-usage-test
 add_test(
     NAME linux-disk-usage
     COMMAND linux-disk-usage-test
+)
+
+add_executable(linux-volume-provider-test
+    cpp/tests/platform/LinuxVolumeProviderTest.cpp
+    cpp/src/platform/linux/LinuxVolumeProvider.cpp
+)
+
+target_include_directories(linux-volume-provider-test
+    PRIVATE
+        cpp/include
+)
+
+add_test(
+    NAME linux-volume-provider
+    COMMAND linux-volume-provider-test
 )
