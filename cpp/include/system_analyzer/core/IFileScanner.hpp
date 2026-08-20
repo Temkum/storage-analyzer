@@ -1,19 +1,13 @@
 #pragma once
 
-#include <cstdint>
 #include <filesystem>
 #include <functional>
 
+#include "system_analyzer/core/ScanContext.hpp"
 #include "system_analyzer/domain/FileEntry.hpp"
 
 namespace system_analyzer::core
 {
-
-    struct ScanContext
-    {
-        std::function<void(std::uintmax_t)> onProgress = {};
-        std::function<bool()> isCancelled = {};
-    };
 
     class IFileScanner
     {

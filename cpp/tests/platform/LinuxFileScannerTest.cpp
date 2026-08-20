@@ -114,5 +114,54 @@ int main()
         std::filesystem::remove_all(tempRoot);
     }
 
+    {
+        const std::filesystem::path tempRoot =
+            std::filesystem::temp_directory_path() /
+            "linux-scanner-progress-cancellation";
+
+        std::filesystem::remove_all(tempRoot);
+        std::filesystem::create_directories(tempRoot);
+
+        for (int i = 0; i < 20; ++i)
+        {
+            std::ofstream(
+                tempRoot / ("file" + std::to_string(i) + ".txt"));
+        }
+
+        LinuxFileScanner scanner;
+
+        std::uintmax_t cancelledProgress = 0;
+        std::size_t cancelledEntries = 0;
+
+        ScanContext cancellationContext;
+
+        cancellationContext.onProgress =
+            [&cancelledProgress](std::uintmax_t count)
+        {
+            cancelledProgress = count;
+        };
+
+        cancellationContext.isCancelled =
+            [&cancelledProgress]()
+        {
+            return cancelledProgress >= 1;
+        };
+
+        scanner.scan(
+            tempRoot,
+            [&cancelledEntries](const auto &)
+            {
+                ++cancelledEntries;
+            },
+            [](const std::filesystem::path &,
+               const std::error_code &) {},
+            cancellationContext);
+
+        assert(cancelledEntries == 1);
+        assert(cancelledProgress == 1);
+
+        std::filesystem::remove_all(tempRoot);
+    }
+
     return 0;
 }
