@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <vector>
 
+#include "system_analyzer/domain/DiskUsage.hpp"
 #include "system_analyzer/domain/FileEntry.hpp"
 #include "system_analyzer/domain/ScanError.hpp"
 
@@ -27,6 +28,8 @@ namespace system_analyzer::domain
         std::uintmax_t directoryCount = 0;
 
         std::uint64_t durationMs = 0;
+
+        DiskUsage diskUsage;
 
         std::vector<FileEntry> entries;
 

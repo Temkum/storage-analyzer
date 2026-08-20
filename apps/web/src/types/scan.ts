@@ -21,6 +21,14 @@ export interface ScanError {
   message: string
 }
 
+export interface DiskUsage {
+  path: string
+  totalBytes: number
+  freeBytes: number
+  availableBytes: number
+  usedBytes: number
+}
+
 export interface ScanResult {
   rootPath: string
   totalSize: number
@@ -30,4 +38,5 @@ export interface ScanResult {
   directories: DirectorySize[]
   durationMs: number
   errors: ScanError[]
+  diskUsage: DiskUsage
 }

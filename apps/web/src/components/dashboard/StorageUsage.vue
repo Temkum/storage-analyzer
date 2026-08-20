@@ -45,7 +45,10 @@ const segments = computed<StorageSegment[]>(() => {
     .map(([label, size]) => ({
       label,
       size,
-      percentage: (size / totalSize.value) * 100,
+      percentage: Math.min(
+        (size / totalSize.value) * 100,
+        100,
+      ),
     }))
     .sort((a, b) => b.size - a.size)
 })
@@ -71,25 +74,15 @@ function formatBytes(bytes: number): string {
     <div class="storage__header">
       <div>
         <h2>Storage Usage</h2>
-        <p>Storage consumed by file type.</p>
+        <p>Scanned storage grouped by file type.</p>
       </div>
 
       <strong>{{ formatBytes(totalSize) }}</strong>
     </div>
 
-    <div
-      v-if="segments.length"
-      class="storage__bar"
-      role="img"
-      aria-label="Storage usage by file type"
-    >
-      <div
-        v-for="segment in segments"
-        :key="segment.label"
-        class="storage__segment"
-        :style="{ width: `${segment.percentage}%` }"
-        :title="`${segment.label}: ${formatBytes(segment.size)}`"
-      />
+    <div v-if="segments.length" class="storage__bar" role="img" aria-label="Storage usage by file type">
+      <div v-for="segment in segments" :key="segment.label" class="storage__segment"
+        :style="{ width: `${segment.percentage}%` }" :title="`${segment.label}: ${formatBytes(segment.size)}`" />
     </div>
 
     <p v-else>
@@ -97,11 +90,7 @@ function formatBytes(bytes: number): string {
     </p>
 
     <div class="storage__legend">
-      <div
-        v-for="segment in segments"
-        :key="segment.label"
-        class="storage__item"
-      >
+      <div v-for="segment in segments" :key="segment.label" class="storage__item">
         <span>{{ segment.label }}</span>
 
         <strong>
@@ -138,7 +127,7 @@ function formatBytes(bytes: number): string {
   color: #64748b;
 }
 
-.storage__header > strong {
+.storage__header>strong {
   font-size: 20px;
 }
 
