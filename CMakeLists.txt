@@ -24,6 +24,7 @@ add_executable(system-analyzer
     cpp/src/core/DirectorySizeAggregator.cpp
     cpp/src/platform/linux/LinuxFileScanner.cpp
     cpp/src/platform/linux/LinuxFileEntryMapper.cpp
+    cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
     cpp/src/serialization/ScanResultSerializer.cpp
 )
 
@@ -102,4 +103,19 @@ target_include_directories(linux-file-scanner-test
 add_test(
     NAME linux-file-scanner
     COMMAND linux-file-scanner-test
+)
+
+add_executable(linux-disk-usage-test
+    cpp/tests/platform/LinuxDiskUsageProviderTest.cpp
+    cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
+)
+
+target_include_directories(linux-disk-usage-test
+    PRIVATE
+        cpp/include
+)
+
+add_test(
+    NAME linux-disk-usage
+    COMMAND linux-disk-usage-test
 )
