@@ -38,7 +38,8 @@ namespace system_analyzer::platform::linux
                 "binfmt_misc",
                 "nsfs"};
 
-            return pseudoFilesystems.contains(filesystem);
+            return pseudoFilesystems.find(filesystem) !=
+                   pseudoFilesystems.end();
         }
 
         std::string unescapeMountField(const std::string &value)
