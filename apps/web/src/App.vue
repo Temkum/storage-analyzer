@@ -13,23 +13,28 @@ import StorageUsage from '@/components/dashboard/StorageUsage.vue'
 import Volumes from '@/components/dashboard/Volumes.vue'
 import ScanWarnings from '@/components/dashboard/ScanWarnings.vue'
 
-const path = ref('/tmp/system-analyzer-test')
+const path = ref('')
 
 const {
   result,
   isScanning,
+  scannedEntries,
   error,
   scan,
 } = useScanner()
 
 async function handleScan() {
-  await scan(path.value)
+  if (!path.value.trim()) {
+    return
+  }
+
+  await scan(path.value.trim())
 }
 </script>
 
 <template>
   <DashboardLayout :scanning="isScanning">
-    <ScanControls v-model:path="path" :scanning="isScanning" @scan="handleScan" />
+    <ScanControls v-model:path="path" :scanning="isScanning" :scanned-entries="scannedEntries" @scan="handleScan" />
 
     <p v-if="error">
       {{ error }}
