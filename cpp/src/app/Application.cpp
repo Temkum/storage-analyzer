@@ -2,6 +2,7 @@
 #include "system_analyzer/app/Application.hpp"
 
 #include "system_analyzer/core/DirectorySizeAggregator.hpp"
+#include "system_analyzer/platform/linux/LinuxDiskUsageProvider.hpp"
 #include "system_analyzer/platform/linux/LinuxFileScanner.hpp"
 
 namespace system_analyzer::app
@@ -13,6 +14,7 @@ namespace system_analyzer::app
         const auto start = std::chrono::steady_clock::now();
 
         using core::DirectorySizeAggregator;
+        using platform::linux::LinuxDiskUsageProvider;
         using platform::linux::LinuxFileScanner;
 
         domain::ScanResult result;
@@ -20,6 +22,9 @@ namespace system_analyzer::app
 
         LinuxFileScanner scanner;
         DirectorySizeAggregator aggregator;
+        LinuxDiskUsageProvider diskUsageProvider;
+
+        result.diskUsage = diskUsageProvider.getUsage(root);
 
         scanner.scan(
             root,

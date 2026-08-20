@@ -16,6 +16,13 @@ namespace system_analyzer::serialization
         json["directoryCount"] = result.directoryCount;
         json["durationMs"] = result.durationMs;
 
+        json["diskUsage"] = {
+            {"path", result.diskUsage.path.string()},
+            {"totalBytes", result.diskUsage.totalBytes},
+            {"freeBytes", result.diskUsage.freeBytes},
+            {"availableBytes", result.diskUsage.availableBytes},
+            {"usedBytes", result.diskUsage.usedBytes}};
+
         json["entries"] = nlohmann::json::array();
 
         for (const auto &entry : result.entries)

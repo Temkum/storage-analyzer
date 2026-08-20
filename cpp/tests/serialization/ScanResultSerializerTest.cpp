@@ -25,6 +25,13 @@ int main()
     result.errors.push_back({"/restricted",
                              "Permission denied"});
 
+    result.diskUsage = {
+        "/tmp",
+        1000,
+        400,
+        350,
+        600};
+
     const std::string output =
         ScanResultSerializer::toJson(result);
 
@@ -42,6 +49,12 @@ int main()
 
     assert(json["directories"][0]["path"] == "/tmp");
     assert(json["directories"][0]["size"] == 128);
+
+    assert(json["diskUsage"]["path"] == "/tmp");
+    assert(json["diskUsage"]["totalBytes"] == 1000);
+    assert(json["diskUsage"]["freeBytes"] == 400);
+    assert(json["diskUsage"]["availableBytes"] == 350);
+    assert(json["diskUsage"]["usedBytes"] == 600);
 
     return 0;
 }

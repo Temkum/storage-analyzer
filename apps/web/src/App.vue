@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DirectoryBreakdown from '@/components/dashboard/DirectoryBreakdown.vue'
+import DiskUsage from '@/components/dashboard/DiskUsage.vue'
 import FileTypeBreakdown from '@/components/dashboard/FileTypeBreakdown.vue'
 import LargestFiles from '@/components/dashboard/LargestFiles.vue'
 import ScanControls from '@/components/dashboard/ScanControls.vue'
@@ -37,6 +38,8 @@ async function handleScan() {
       <ScanWarnings :result="result" />
 
       <ScanSummary :result="result" />
+
+      <DiskUsage :result="result" />
 
       <StorageUsage :result="result" />
 
