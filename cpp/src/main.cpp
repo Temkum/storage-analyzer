@@ -1,7 +1,9 @@
+#include <cstdint>
 #include <filesystem>
 #include <iostream>
 
 #include "system_analyzer/app/Application.hpp"
+#include "system_analyzer/core/ScanContext.hpp"
 #include "system_analyzer/serialization/ScanResultSerializer.hpp"
 
 namespace
@@ -56,7 +58,19 @@ int main(int argc, char *argv[])
 
     system_analyzer::app::Application application;
 
-    const auto result = application.scan(root);
+    system_analyzer::core::ScanContext context;
+
+    context.onProgress =
+        [](std::uintmax_t scannedEntries)
+        {
+            std::cerr
+                << "PROGRESS:"
+                << scannedEntries
+                << '\n';
+            std::cerr.flush();
+        };
+
+    const auto result = application.scan(root, context);
 
     const auto json =
         system_analyzer::serialization::ScanResultSerializer::toJson(result);

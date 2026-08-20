@@ -10,12 +10,12 @@ namespace system_analyzer::app
 {
 
     domain::ScanResult Application::scan(
-        const std::filesystem::path &root)
+        const std::filesystem::path &root,
+        const core::ScanContext &context)
     {
         const auto start = std::chrono::steady_clock::now();
 
         using core::DirectorySizeAggregator;
-        using core::ScanContext;
         using platform::linux::LinuxDiskUsageProvider;
         using platform::linux::LinuxFileScanner;
         using platform::linux::LinuxVolumeProvider;
@@ -30,8 +30,6 @@ namespace system_analyzer::app
 
         result.diskUsage = diskUsageProvider.getUsage(root);
         result.volumes = volumeProvider.getVolumes();
-
-        ScanContext scanContext;
 
         scanner.scan(
             root,
@@ -62,7 +60,7 @@ namespace system_analyzer::app
                 result.errors.push_back({path.string(),
                                          error.message()});
             },
-            scanContext);
+            context);
 
         for (const auto &entry : result.entries)
         {
