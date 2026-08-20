@@ -1,5 +1,6 @@
 #include "system_analyzer/platform/linux/LinuxFileScanner.hpp"
 
+#include <cstdint>
 #include <filesystem>
 #include <system_error>
 
@@ -11,7 +12,8 @@ namespace system_analyzer::platform::linux
     void LinuxFileScanner::scan(
         const std::filesystem::path &root,
         const EntryCallback &entryCallback,
-        const ErrorCallback &errorCallback)
+        const ErrorCallback &errorCallback,
+        const core::ScanContext &context)
     {
         std::error_code error;
 
@@ -28,8 +30,15 @@ namespace system_analyzer::platform::linux
             return;
         }
 
+        std::uintmax_t scannedEntries = 0;
+
         while (iterator != end)
         {
+            if (context.isCancelled && context.isCancelled())
+            {
+                break;
+            }
+
             if (error)
             {
                 errorCallback(iterator->path(), error);
@@ -45,6 +54,13 @@ namespace system_analyzer::platform::linux
                 LinuxFileEntryMapper::map(entry);
 
             entryCallback(fileEntry);
+
+            ++scannedEntries;
+
+            if (context.onProgress)
+            {
+                context.onProgress(scannedEntries);
+            }
 
             iterator.increment(error);
         }

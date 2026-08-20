@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 
@@ -7,6 +8,12 @@
 
 namespace system_analyzer::core
 {
+
+    struct ScanContext
+    {
+        std::function<void(std::uintmax_t)> onProgress = {};
+        std::function<bool()> isCancelled = {};
+    };
 
     class IFileScanner
     {
@@ -21,7 +28,8 @@ namespace system_analyzer::core
         virtual void scan(
             const std::filesystem::path &root,
             const EntryCallback &callback,
-            const ErrorCallback &errorCallback) = 0;
+            const ErrorCallback &errorCallback,
+            const ScanContext &context = {}) = 0;
     };
 
 } // namespace system_analyzer::core

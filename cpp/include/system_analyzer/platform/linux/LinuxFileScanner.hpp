@@ -11,7 +11,8 @@ namespace system_analyzer::platform::linux
         void scan(
             const std::filesystem::path &root,
             const EntryCallback &entryCallback,
-            const ErrorCallback &errorCallback) override;
+            const ErrorCallback &errorCallback,
+            const core::ScanContext &context = {}) override;
     };
 
 } // namespace system_analyzer::platform::linux
