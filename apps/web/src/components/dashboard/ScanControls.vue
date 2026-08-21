@@ -43,7 +43,43 @@ async function chooseDirectory() {
       </div>
     </div>
 
-    <button type="submit" class="scan-controls__scan" :disabled="scanning || !path.trim()">
+    <button
+      type="submit"
+      class="scan-controls__scan"
+      :disabled="scanning || !path.trim()"
+    >
+      <svg
+        v-if="!scanning"
+        class="scan-controls__scan-icon"
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+
+      <svg
+        v-else
+        class="scan-controls__spinner"
+        viewBox="0 0 24 24"
+        width="16"
+        height="16"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+      </svg>
+
       {{ scanning ? 'Scanning...' : 'Scan Directory' }}
     </button>
   </form>
@@ -79,6 +115,62 @@ async function chooseDirectory() {
 
 .scan-controls__browse:hover:not(:disabled) {
   background: #f1f5f9;
+}
+
+.scan-controls__scan {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: #0f172a;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.scan-controls__scan:hover:not(:disabled) {
+  background: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
+}
+
+.scan-controls__scan:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.scan-controls__scan:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.scan-controls__scan:disabled {
+  background: #cbd5e1;
+  color: #f8fafc;
+  cursor: not-allowed;
+}
+
+.scan-controls__scan-icon {
+  flex-shrink: 0;
+}
+
+.scan-controls__spinner {
+  flex-shrink: 0;
+  animation: scan-spin 800ms linear infinite;
+}
+
+@keyframes scan-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .scan-progress {

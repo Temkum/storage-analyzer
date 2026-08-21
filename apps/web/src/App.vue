@@ -7,6 +7,7 @@ import DiskUsage from '@/components/dashboard/DiskUsage.vue'
 import FileTypeBreakdown from '@/components/dashboard/FileTypeBreakdown.vue'
 import LargestFiles from '@/components/dashboard/LargestFiles.vue'
 import ScanControls from '@/components/dashboard/ScanControls.vue'
+import ScanErrorBanner from '@/components/dashboard/ScanErrorBanner.vue'
 import ScanSummary from '@/components/dashboard/ScanSummary.vue'
 import { useScanner } from '@/composables/useScanner'
 import StorageUsage from '@/components/dashboard/StorageUsage.vue'
@@ -30,15 +31,21 @@ async function handleScan() {
 
   await scan(path.value.trim())
 }
+
+function dismissError() {
+  error.value = null
+}
 </script>
 
 <template>
   <DashboardLayout :scanning="isScanning">
     <ScanControls v-model:path="path" :scanning="isScanning" :scanned-entries="scannedEntries" @scan="handleScan" />
 
-    <p v-if="error">
-      {{ error }}
-    </p>
+    <ScanErrorBanner
+      v-if="error"
+      :message="error"
+      @dismiss="dismissError"
+    />
 
     <template v-if="result">
       <ScanWarnings :result="result" />
