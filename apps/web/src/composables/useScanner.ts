@@ -17,6 +17,10 @@ export function useScanner() {
   }
 
   async function scan(path: string) {
+    if (isScanning.value) {
+      return
+    }
+
     isScanning.value = true
     scannedEntries.value = 0
     error.value = null

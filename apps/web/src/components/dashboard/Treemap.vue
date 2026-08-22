@@ -24,6 +24,11 @@ interface Rect {
 
 const props = defineProps<{
   result: ScanResult
+  navigating: boolean
+}>()
+
+const emit = defineEmits<{
+  navigate: [path: string]
 }>()
 
 const VIEWBOX_WIDTH = 1000
@@ -76,6 +81,18 @@ const items = computed<TreemapItem[]>(() => {
     }))
     .sort((a, b) => b.size - a.size)
 })
+
+function canNavigateTile(item: TreemapItem): boolean {
+  return item.path !== normalizePath(props.result.rootPath)
+}
+
+function handleTileClick(item: TreemapItem) {
+  if (props.navigating || !canNavigateTile(item)) {
+    return
+  }
+
+  emit('navigate', item.path)
+}
 
 function layout(items: TreemapItem[]): Rect[] {
   if (items.length === 0) {
@@ -225,7 +242,8 @@ function textFits(rectangle: Rect): boolean {
         <p class="treemap__eyebrow">STORAGE MAP</p>
         <h2>Where your storage is going</h2>
         <p>
-          Each block represents an immediate directory under the scanned path.
+          Each block is an immediate directory under the scanned path.
+          Click a block to drill into it.
         </p>
       </div>
 
@@ -237,7 +255,13 @@ function textFits(rectangle: Rect): boolean {
 
     <div v-if="rectangles.length" class="treemap__canvas">
       <svg viewBox="0 0 1000 560" preserveAspectRatio="none" role="img" aria-label="Storage usage treemap">
-        <g v-for="(rectangle, index) in rectangles" :key="rectangle.item.id" class="treemap__tile">
+        <g v-for="(rectangle, index) in rectangles" :key="rectangle.item.id" class="treemap__tile" :class="{
+          'treemap__tile--inert': !canNavigateTile(rectangle.item),
+        }" role="button" :tabindex="canNavigateTile(rectangle.item) ? 0 : undefined"
+          :aria-label="`Drill into ${rectangle.item.path}`"
+          :aria-disabled="!canNavigateTile(rectangle.item) || navigating" @click="handleTileClick(rectangle.item)"
+          @keydown.enter.prevent="handleTileClick(rectangle.item)"
+          @keydown.space.prevent="handleTileClick(rectangle.item)">
           <rect :x="rectangle.x" :y="rectangle.y" :width="rectangle.width" :height="rectangle.height" rx="6"
             :class="`treemap__tile--${index % 6}`" />
 
@@ -254,8 +278,9 @@ function textFits(rectangle: Rect): boolean {
 
           <title>
             {{ rectangle.item.path }}
-            · {{ formatBytes(rectangle.item.size) }}
+            · {{ formatBytes(rectangle.item.size, 1) }}
             · {{ rectangle.item.percentage.toFixed(1) }}%
+            · {{ canNavigateTile(rectangle.item) ? 'Click to drill down' : 'Files, not a directory' }}
           </title>
         </g>
       </svg>
@@ -359,6 +384,25 @@ function textFits(rectangle: Rect): boolean {
 
 .treemap__tile:hover rect {
   filter: brightness(0.92);
+}
+
+.treemap__tile:focus-visible {
+  outline: 2px dashed #0f172a;
+  outline-offset: 2px;
+}
+
+.treemap__tile--inert {
+  cursor: default;
+}
+
+.treemap__tile--inert rect {
+  stroke: #cbd5e1;
+  stroke-dasharray: 6 4;
+  stroke-width: 2;
+}
+
+.treemap__tile--inert:hover rect {
+  filter: none;
 }
 
 .treemap__tile--0 {

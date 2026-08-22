@@ -3,6 +3,7 @@ import { ref } from 'vue'
 
 import DashboardLayout from '@/components/layout/DashboardLayout.vue'
 import DirectoryBreakdown from '@/components/dashboard/DirectoryBreakdown.vue'
+import DirectoryBreadcrumb from '@/components/dashboard/DirectoryBreadcrumb.vue'
 import DiskUsage from '@/components/dashboard/DiskUsage.vue'
 import FileTypeBreakdown from '@/components/dashboard/FileTypeBreakdown.vue'
 import LargestFiles from '@/components/dashboard/LargestFiles.vue'
@@ -16,6 +17,7 @@ import Volumes from '@/components/dashboard/Volumes.vue'
 import { useScanner } from '@/composables/useScanner'
 
 const path = ref('/tmp/system-analyzer-test')
+const breadcrumb = ref<string[]>([])
 
 const {
   result,
@@ -27,7 +29,43 @@ const {
 } = useScanner()
 
 async function handleScan() {
+  breadcrumb.value = [path.value]
   await scan(path.value)
+}
+
+function handleDrillDown(targetPath: string) {
+  if (isScanning.value) {
+    return
+  }
+
+  path.value = targetPath
+
+  const previous = breadcrumb.value[breadcrumb.value.length - 1]
+
+  if (previous === targetPath) {
+    // Re-scan the current directory without duplicating the breadcrumb.
+    void scan(targetPath)
+    return
+  }
+
+  breadcrumb.value = [...breadcrumb.value, targetPath]
+  void scan(targetPath)
+}
+
+function handleBreadcrumbNavigate(targetPath: string) {
+  if (isScanning.value) {
+    return
+  }
+
+  const index = breadcrumb.value.findIndex((entry) => entry === targetPath)
+
+  if (index === -1) {
+    return
+  }
+
+  path.value = targetPath
+  breadcrumb.value = breadcrumb.value.slice(0, index + 1)
+  void scan(targetPath)
 }
 </script>
 
@@ -56,6 +94,9 @@ async function handleScan() {
 
     <ScanControls v-model:path="path" :scanning="isScanning" :scanned-entries="scannedEntries" @scan="handleScan" />
 
+    <DirectoryBreadcrumb v-if="breadcrumb.length" :chain="breadcrumb" :scanning="isScanning"
+      @navigate="handleBreadcrumbNavigate" />
+
     <ScanErrorBanner v-if="error" :message="error" @dismiss="clearError" />
 
     <template v-if="result">
@@ -63,7 +104,7 @@ async function handleScan() {
 
       <ScanSummary :result="result" />
 
-      <Treemap id="storage" :result="result" />
+      <Treemap id="storage" :result="result" :navigating="isScanning" @navigate="handleDrillDown" />
 
       <div class="dashboard-grid dashboard-grid--two">
         <DiskUsage :result="result" />
