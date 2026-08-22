@@ -24,8 +24,8 @@ export default defineConfigWithVueTs(
   {
     name: 'app/vue-rules',
     rules: {
-      // The dashboard Volumes card is an intentionally single-word component.
-      'vue/multi-word-component-names': ['error', { ignores: ['Volumes'] }],
+      // The treemap and volumes cards are intentionally single-word components.
+      'vue/multi-word-component-names': ['error', { ignores: ['Volumes', 'Treemap'] }],
     },
   },
 
