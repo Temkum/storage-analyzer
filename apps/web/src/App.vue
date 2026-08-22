@@ -70,7 +70,7 @@ function handleBreadcrumbNavigate(targetPath: string) {
 </script>
 
 <template>
-  <DashboardLayout :scanning="isScanning">
+  <DashboardLayout :status="error ? 'error' : isScanning ? 'scanning' : 'idle'">
     <section id="overview" class="hero">
       <div>
         <p class="hero__eyebrow">DISK ANALYSIS</p>

@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+
 import { useScrollSpy } from '@/composables/useScrollSpy'
 
-defineProps<{
-  scanning: boolean
+const props = defineProps<{
+  status: 'idle' | 'scanning' | 'error'
 }>()
 
 const NAV_ITEMS = [
@@ -12,6 +14,18 @@ const NAV_ITEMS = [
 ] as const
 
 const { activeId } = useScrollSpy(NAV_ITEMS.map((item) => item.id))
+
+const statusLabel = computed(() => {
+  if (props.status === 'scanning') {
+    return 'Scanning…'
+  }
+
+  if (props.status === 'error') {
+    return 'Error'
+  }
+
+  return 'Ready'
+})
 
 function jumpTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -42,9 +56,9 @@ function jumpTo(id: string) {
       </nav>
 
       <div class="sidebar__footer">
-        <span class="status-dot" :class="{ 'status-dot--active': scanning }" />
-
-        {{ scanning ? 'Scanning system' : 'Ready' }}
+        <span class="status-badge" :class="`status-badge--${status}`" role="status">
+          {{ statusLabel }}
+        </span>
       </div>
     </aside>
 
@@ -56,9 +70,9 @@ function jumpTo(id: string) {
         </div>
 
         <div class="topbar__status">
-          <span class="status-dot" :class="{ 'status-dot--active': scanning }" />
-
-          {{ scanning ? 'Analyzing...' : 'Ready' }}
+          <span class="status-badge" :class="`status-badge--${status}`" role="status">
+            {{ statusLabel }}
+          </span>
         </div>
       </header>
 
@@ -169,20 +183,31 @@ function jumpTo(id: string) {
   gap: 8px;
   margin-top: auto;
   padding: 12px;
-  color: #64748b;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 11px;
+  border-radius: 999px;
   font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
 }
 
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: #94a3b8;
+.status-badge--idle {
+  background: #dcfce7;
+  color: #166534;
 }
 
-.status-dot--active {
-  background: #16a34a;
-  box-shadow: 0 0 0 4px #dcfce7;
+.status-badge--scanning {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.status-badge--error {
+  background: #fee2e2;
+  color: #b91c1c;
 }
 
 .main {
@@ -220,13 +245,6 @@ function jumpTo(id: string) {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 11px;
-  border: 1px solid #e2e8f0;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #475569;
-  font-size: 12px;
-  font-weight: 600;
 }
 
 .content {
@@ -286,7 +304,7 @@ function jumpTo(id: string) {
 
   .topbar__status {
     align-self: stretch;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .content {
