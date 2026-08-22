@@ -23,14 +23,20 @@ const {
   result,
   isScanning,
   scannedEntries,
+  cancelled,
   error,
   clearError,
   scan,
+  cancel,
 } = useScanner()
 
 async function handleScan() {
   breadcrumb.value = [path.value]
   await scan(path.value)
+}
+
+function handleCancel() {
+  void cancel()
 }
 
 function handleDrillDown(targetPath: string) {
@@ -92,10 +98,24 @@ function handleBreadcrumbNavigate(targetPath: string) {
       </div>
     </section>
 
-    <ScanControls v-model:path="path" :scanning="isScanning" :scanned-entries="scannedEntries" @scan="handleScan" />
+    <ScanControls v-model:path="path" :scanning="isScanning" :scanned-entries="scannedEntries" @scan="handleScan"
+      @cancel="handleCancel" />
 
     <DirectoryBreadcrumb v-if="breadcrumb.length" :chain="breadcrumb" :scanning="isScanning"
       @navigate="handleBreadcrumbNavigate" />
+
+    <section v-if="cancelled" class="scan-cancelled" role="status" aria-live="polite">
+      <div class="scan-cancelled__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="16" x2="12" y2="12" />
+          <line x1="12" y1="8" x2="12.01" y2="8" />
+        </svg>
+      </div>
+
+      <strong>Scan cancelled</strong>
+    </section>
 
     <ScanErrorBanner v-if="error" :message="error" @dismiss="clearError" />
 
@@ -203,6 +223,33 @@ function handleBreadcrumbNavigate(targetPath: string) {
 
 .dashboard-grid--two {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.scan-cancelled {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+}
+
+.scan-cancelled__icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.scan-cancelled strong {
+  font-size: 13px;
 }
 
 .empty-state {

@@ -10,6 +10,7 @@ defineProps<{
 const emit = defineEmits<{
   'update:path': [value: string]
   scan: []
+  cancel: []
 }>()
 
 async function chooseDirectory() {
@@ -51,20 +52,37 @@ async function chooseDirectory() {
       </div>
     </div>
 
-    <button type="submit" class="scan-controls__scan" :disabled="scanning || !path.trim()">
-      <svg v-if="!scanning" class="scan-controls__scan-icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="11" cy="11" r="8" />
-        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-      </svg>
+    <div class="scan-controls__actions">
+      <button type="submit" class="scan-controls__scan" :disabled="scanning || !path.trim()">
+        <svg v-if="!scanning" class="scan-controls__scan-icon" viewBox="0 0 24 24" width="16" height="16" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
 
-      <svg v-else class="scan-controls__spinner" viewBox="0 0 24 24" width="16" height="16" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-      </svg>
+        <svg v-else class="scan-controls__spinner" viewBox="0 0 24 24" width="16" height="16" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+        </svg>
 
-      {{ scanning ? 'Scanning...' : 'Scan Directory' }}
-    </button>
+        {{ scanning ? 'Scanning...' : 'Scan Directory' }}
+      </button>
+
+      <button
+        v-if="scanning"
+        type="button"
+        class="scan-controls__cancel"
+        @click="emit('cancel')"
+      >
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+
+        Cancel
+      </button>
+    </div>
   </form>
 
   <div v-if="scanning" class="scan-progress" role="status" aria-live="polite">
@@ -189,6 +207,13 @@ async function chooseDirectory() {
   opacity: 0.55;
 }
 
+.scan-controls__actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  gap: 8px;
+}
+
 .scan-controls__scan {
   display: inline-flex;
   flex-shrink: 0;
@@ -207,6 +232,35 @@ async function chooseDirectory() {
     background 150ms ease,
     transform 150ms ease,
     box-shadow 150ms ease;
+}
+
+.scan-controls__cancel {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #ffffff;
+  color: #b91c1c;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
+}
+
+.scan-controls__cancel:hover {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.scan-controls__cancel:focus-visible {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
 }
 
 .scan-controls__scan:hover:not(:disabled) {
@@ -286,7 +340,11 @@ async function chooseDirectory() {
     flex-direction: column;
   }
 
-  .scan-controls__scan {
+  .scan-controls__actions {
+    flex-direction: column;
+  }
+
+  .scan-controls__actions button {
     width: 100%;
   }
 }

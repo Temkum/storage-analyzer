@@ -7,6 +7,10 @@ export async function scanDirectory(path: string): Promise<ScanResult> {
   return JSON.parse(raw) as ScanResult
 }
 
+export async function cancelScan(): Promise<void> {
+  await invoke('cancel_scan')
+}
+
 export async function revealInFileManager(path: string): Promise<void> {
   await invoke('reveal_in_file_manager', { path })
 }
