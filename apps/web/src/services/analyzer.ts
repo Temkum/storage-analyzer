@@ -6,3 +6,7 @@ export async function scanDirectory(path: string): Promise<ScanResult> {
   const raw = await invoke<string>('scan_directory', { path })
   return JSON.parse(raw) as ScanResult
 }
+
+export async function revealInFileManager(path: string): Promise<void> {
+  await invoke('reveal_in_file_manager', { path })
+}

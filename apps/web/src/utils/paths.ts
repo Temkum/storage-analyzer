@@ -23,3 +23,18 @@ export function basename(path: string): string {
 
   return parts[parts.length - 1] || normalized
 }
+
+export function relativePath(path: string, root: string): string {
+  const normalized = normalizePath(path)
+  const normalizedRoot = normalizePath(root)
+
+  if (normalized === normalizedRoot) {
+    return normalized
+  }
+
+  if (normalized.startsWith(`${normalizedRoot}/`)) {
+    return normalized.slice(normalizedRoot.length + 1)
+  }
+
+  return normalized
+}

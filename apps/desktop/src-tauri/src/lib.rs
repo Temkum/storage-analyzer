@@ -1,6 +1,49 @@
+use std::process::Command;
+
 use tauri::Emitter;
 use tauri_plugin_shell::process::CommandEvent;
 use tauri_plugin_shell::ShellExt;
+
+#[tauri::command]
+fn reveal_in_file_manager(path: String) -> Result<(), String> {
+    let target = std::path::PathBuf::from(&path);
+
+    if !target.exists() {
+        return Err(format!("File no longer exists on disk: {path}"));
+    }
+
+    let parent = target
+        .parent()
+        .ok_or_else(|| "Path has no parent directory.".to_string())?;
+
+    let desktop = std::env::var("XDG_CURRENT_DESKTOP")
+        .unwrap_or_default()
+        .to_lowercase();
+
+    let launched = if desktop.contains("kde") {
+        spawn_detached(Command::new("dolphin").args(["--select", path.as_str()]))
+    } else if desktop.contains("gnome") || desktop.contains("ubuntu") {
+        spawn_detached(Command::new("nautilus").args(["--select", path.as_str()]))
+    } else if desktop.contains("xfce") {
+        spawn_detached(Command::new("thunar").arg(parent))
+    } else {
+        spawn_detached(Command::new("xdg-open").arg(parent))
+    };
+
+    if launched {
+        return Ok(());
+    }
+
+    if spawn_detached(Command::new("xdg-open").arg(parent)) {
+        Ok(())
+    } else {
+        Err(format!("Could not launch a file manager for: {path}"))
+    }
+}
+
+fn spawn_detached(command: &mut Command) -> bool {
+    command.spawn().is_ok()
+}
 
 #[tauri::command]
 async fn scan_directory(
@@ -64,7 +107,8 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
-            scan_directory
+            scan_directory,
+            reveal_in_file_manager
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

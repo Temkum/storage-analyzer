@@ -112,7 +112,7 @@ function handleBreadcrumbNavigate(targetPath: string) {
       </div>
 
       <div class="dashboard-grid dashboard-grid--two">
-        <LargestFiles :result="result" />
+        <LargestFiles :result="result" :scanning="isScanning" />
         <DirectoryBreakdown :result="result" />
       </div>
 

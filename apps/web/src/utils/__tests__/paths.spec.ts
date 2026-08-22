@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { basename, isDirectChild, normalizePath } from '@/utils/paths'
+import { basename, isDirectChild, normalizePath, relativePath } from '@/utils/paths'
 
 describe('normalizePath', () => {
   it('converts windows separators and strips trailing slashes', () => {
@@ -26,6 +26,22 @@ describe('isDirectChild', () => {
 
   it('excludes paths that merely share a prefix', () => {
     expect(isDirectChild(`${root}-extra`, root)).toBe(false)
+  })
+})
+
+describe('relativePath', () => {
+  const root = '/tmp/system-analyzer-test'
+
+  it('returns the segment beneath the root', () => {
+    expect(relativePath(`${root}/Documents/report.pdf`, root)).toBe('Documents/report.pdf')
+  })
+
+  it('keeps the root itself unchanged', () => {
+    expect(relativePath(`${root}`, root)).toBe('/tmp/system-analyzer-test')
+  })
+
+  it('returns the normalized path when outside the root', () => {
+    expect(relativePath('/elsewhere/file.txt', root)).toBe('/elsewhere/file.txt')
   })
 })
 
