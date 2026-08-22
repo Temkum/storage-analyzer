@@ -32,7 +32,8 @@ namespace system_analyzer::serialization
                                        {"totalBytes", volume.totalBytes},
                                        {"freeBytes", volume.freeBytes},
                                        {"availableBytes", volume.availableBytes},
-                                       {"usedBytes", volume.usedBytes}});
+                                       {"usedBytes", volume.usedBytes},
+                                       {"readOnly", volume.readOnly}});
         }
 
         json["entries"] = nlohmann::json::array();

@@ -36,10 +36,6 @@ function jumpTo(id: string) {
   <div class="app-shell">
     <aside class="sidebar">
       <div class="brand">
-        <div class="brand__mark">
-          SA
-        </div>
-
         <div>
           <strong>System Analyzer</strong>
           <span>Disk Analyzer</span>

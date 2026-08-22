@@ -80,6 +80,22 @@ namespace system_analyzer::platform::linux
 
             return result;
         }
+
+        bool isReadOnlyMount(const std::string &options)
+        {
+            std::istringstream stream(options);
+            std::string option;
+
+            while (std::getline(stream, option, ','))
+            {
+                if (option == "ro")
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 
     std::vector<domain::MountedVolume>
@@ -104,8 +120,9 @@ namespace system_analyzer::platform::linux
             std::string device;
             std::string mountPoint;
             std::string filesystem;
+            std::string options;
 
-            if (!(stream >> device >> mountPoint >> filesystem))
+            if (!(stream >> device >> mountPoint >> filesystem >> options))
             {
                 continue;
             }
@@ -158,7 +175,8 @@ namespace system_analyzer::platform::linux
                                totalBytes,
                                freeBytes,
                                availableBytes,
-                               usedBytes});
+                               usedBytes,
+                               isReadOnlyMount(options)});
         }
 
         return volumes;

@@ -36,6 +36,7 @@ export interface MountedVolume {
   freeBytes: number
   availableBytes: number
   usedBytes: number
+  readOnly: boolean
 }
 
 export interface ScanResult {

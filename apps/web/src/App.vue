@@ -11,7 +11,6 @@ import ScanControls from '@/components/dashboard/ScanControls.vue'
 import ScanErrorBanner from '@/components/dashboard/ScanErrorBanner.vue'
 import ScanSummary from '@/components/dashboard/ScanSummary.vue'
 import ScanWarnings from '@/components/dashboard/ScanWarnings.vue'
-import StorageUsage from '@/components/dashboard/StorageUsage.vue'
 import Treemap from '@/components/dashboard/Treemap.vue'
 import Volumes from '@/components/dashboard/Volumes.vue'
 import { useScanner } from '@/composables/useScanner'
@@ -127,18 +126,16 @@ function handleBreadcrumbNavigate(targetPath: string) {
       <Treemap id="storage" :result="result" :navigating="isScanning" @navigate="handleDrillDown" />
 
       <div class="dashboard-grid dashboard-grid--two">
-        <DiskUsage :result="result" />
-        <StorageUsage :result="result" />
-      </div>
-
-      <div class="dashboard-grid dashboard-grid--two">
         <LargestFiles :result="result" :scanning="isScanning" />
         <DirectoryBreakdown :result="result" />
       </div>
 
       <FileTypeBreakdown :result="result" />
 
-      <Volumes id="volumes" :result="result" />
+      <div class="dashboard-grid dashboard-grid--two">
+        <DiskUsage :result="result" />
+        <Volumes id="volumes" :result="result" />
+      </div>
     </template>
 
     <section v-else class="empty-state">

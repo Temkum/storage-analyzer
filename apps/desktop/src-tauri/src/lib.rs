@@ -113,10 +113,10 @@ async fn scan_directory(
         .map_err(|error| format!("C++ engine returned invalid UTF-8: {error}"))
 }
 
-/// Requests cancellation of the currently running scan. The running sidecar
-/// process is killed; the `scan_directory` invocation reports the distinct
-/// `SCAN_CANCELLED` outcome so the UI can treat it as a cancellation rather
-/// than an error.
+/* Requests cancellation of the currently running scan. The running sidecar
+process is killed; the `scan_directory` invocation reports the distinct
+`SCAN_CANCELLED` outcome so the UI can treat it as a cancellation rather
+than an error. */
 #[tauri::command]
 fn cancel_scan(state: State<'_, CurrentScan>) -> Result<(), String> {
     state.cancel_requested.store(true, Ordering::SeqCst);

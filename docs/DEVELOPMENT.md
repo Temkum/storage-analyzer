@@ -122,3 +122,132 @@ Scan
 Then we'll decide which pieces belong in the **platform-independent core** and which belong in the **Linux implementation**.
 
 That is where you'll start learning the C++ architecture that will eventually allow us to run the same application on **Ubuntu, Windows, and macOS**.
+
+---
+### Recommended sequence
+
+1. **File-level exploration**
+
+   * Largest files per directory
+   * File metadata
+   * Reveal/open file
+   * Graceful handling of deleted/inaccessible files
+
+2. **File-type analysis**
+
+   * Group by extension
+   * Size and count per type
+   * Percentage of scanned storage
+   * Better visualization
+   * Examples: `.mp4`, `.zip`, `.jpg`, `.js`, `.pdf`
+
+3. **Volume/storage analysis**
+
+   * Mounted volumes
+   * Total/free/used space
+   * Filesystem information
+   * Mount path
+   * Read-only status
+   * Make the existing `Volumes` component useful rather than decorative
+
+4. **Scan robustness**
+
+   * Permission-denied directories
+   * Symlinks
+   * Broken symlinks
+   * Files disappearing during scan
+   * Very large directories
+   * Cancellation
+   * Proper error/warning aggregation
+
+5. **Scan cancellation**
+
+   * Add a Cancel button
+   * Propagate cancellation from Vue → Tauri → C++
+   * Make sure the sidecar terminates cleanly
+   * Return a distinct cancelled state rather than an error
+
+6. **Performance pass**
+
+   * Benchmark against large directory trees
+   * Avoid unnecessary Vue reactivity
+   * Limit expensive rendering to useful datasets
+   * Profile C++ traversal
+   * Check memory usage
+   * Test scans with hundreds of thousands/millions of entries
+
+7. **UX polish**
+
+   * Empty states
+   * Skeleton/loading states
+   * Better error presentation
+   * Responsive layout
+   * Tooltips
+   * Keyboard navigation
+   * Consistent icons
+   * Dark mode if we decide it belongs in v1
+
+8. **Testing**
+
+   * C++ unit/integration tests
+   * Rust/Tauri command tests where practical
+   * Vue component tests
+   * Scanner composable tests
+   * End-to-end smoke test:
+
+   ```text
+   Select directory
+        ↓
+   Scan
+        ↓
+   Progress
+        ↓
+   Dashboard
+        ↓
+   Drill down
+        ↓
+   Breadcrumb back
+        ↓
+   Cancel/error handling
+   ```
+
+9. **Packaging and release**
+
+   * Linux `.deb` / AppImage
+   * Windows installer
+   * macOS bundle later
+   * Verify sidecar binaries for each target
+   * CI builds
+   * Versioning
+   * Release artifacts
+
+### Then v2
+
+Only after v1 is stable would I add the more ambitious features:
+
+```text
+Disk Analyzer v1
+├── Directory scanning
+├── Treemap
+├── Drill-down
+├── Breadcrumb navigation
+├── Largest files
+├── File-type analysis
+├── Volume analysis
+├── Cancellation
+├── Error handling
+└── Cross-platform packaging
+
+Disk Analyzer v2
+├── File search
+├── Duplicate detection
+├── Similar files
+├── Cleanup recommendations
+├── Delete/move operations
+├── Exclusion rules
+├── Historical scan comparison
+├── Scan caching
+└── Background monitoring
+```
+
+The key is **not to let v1 become bloated**. Once we finish file exploration, file types, volumes, cancellation, robustness, performance, tests, and packaging, we should be able to call **Disk Analyzer v1 production-ready** and then use the same C++/Vue/Tauri architecture for the next System Analyzer module.

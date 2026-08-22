@@ -38,7 +38,8 @@ int main()
          10000,
          4000,
          3500,
-         6000}};
+         6000,
+         true}};
 
     const std::string output =
         ScanResultSerializer::toJson(result);
@@ -71,6 +72,7 @@ int main()
     assert(json["volumes"][0]["freeBytes"] == 4000);
     assert(json["volumes"][0]["availableBytes"] == 3500);
     assert(json["volumes"][0]["usedBytes"] == 6000);
+    assert(json["volumes"][0]["readOnly"] == true);
 
     return 0;
 }

@@ -15,6 +15,7 @@ namespace system_analyzer::domain
         std::uintmax_t freeBytes;
         std::uintmax_t availableBytes;
         std::uintmax_t usedBytes;
+        bool readOnly = false;
     };
 
 } // namespace system_analyzer::domain
