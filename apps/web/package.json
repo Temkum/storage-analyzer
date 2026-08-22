@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "tauri:dev": "TAURI_APP_PATH=../../apps/desktop/src-tauri cargo tauri dev",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "test:unit": "vitest",
@@ -17,9 +18,8 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.11.1",
-    "pinia": "^4.0.2",
-    "vue": "^3.5.40",
-    "vue-router": "^5.2.0"
+    "@tauri-apps/plugin-dialog": "^2.7.2",
+    "vue": "^3.5.40"
   },
   "devDependencies": {
     "@tsconfig/node24": "^24.0.4",

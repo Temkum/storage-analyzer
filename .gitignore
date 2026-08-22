@@ -16,3 +16,8 @@
 .idea/
 
 /docs/TUTOR.md
+/docs/Tutor1.md
+
+*.zip
+
+apps/desktop/src-tauri/binaries/

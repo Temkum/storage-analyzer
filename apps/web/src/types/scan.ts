@@ -1,0 +1,53 @@
+export enum FileType {
+  File = 0,
+  Directory = 1,
+  Symlink = 2,
+  Other = 3,
+}
+
+export interface FileEntry {
+  path: string
+  type: FileType
+  size: number
+}
+
+export interface DirectorySize {
+  path: string
+  size: number
+}
+
+export interface ScanError {
+  path: string
+  message: string
+}
+
+export interface DiskUsage {
+  path: string
+  totalBytes: number
+  freeBytes: number
+  availableBytes: number
+  usedBytes: number
+}
+
+export interface MountedVolume {
+  mountPoint: string
+  filesystem: string
+  totalBytes: number
+  freeBytes: number
+  availableBytes: number
+  usedBytes: number
+  readOnly: boolean
+}
+
+export interface ScanResult {
+  rootPath: string
+  totalSize: number
+  fileCount: number
+  directoryCount: number
+  entries: FileEntry[]
+  directories: DirectorySize[]
+  durationMs: number
+  errors: ScanError[]
+  diskUsage: DiskUsage
+  volumes: MountedVolume[]
+}

@@ -24,12 +24,26 @@ add_executable(system-analyzer
     cpp/src/core/DirectorySizeAggregator.cpp
     cpp/src/platform/linux/LinuxFileScanner.cpp
     cpp/src/platform/linux/LinuxFileEntryMapper.cpp
+    cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
+    cpp/src/platform/linux/LinuxVolumeProvider.cpp
     cpp/src/serialization/ScanResultSerializer.cpp
 )
 
 target_include_directories(system-analyzer
     PRIVATE
         cpp/include
+)
+
+# Stage the engine binary where Tauri expects it so `cargo tauri dev` always
+# runs a sidecar that matches the freshly-built C++ code.
+set(TAURI_BINARIES_DIR "${CMAKE_SOURCE_DIR}/apps/desktop/src-tauri/binaries")
+
+add_custom_command(
+    TARGET system-analyzer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        $<TARGET_FILE:system-analyzer>
+        "${TAURI_BINARIES_DIR}/system-analyzer-${CMAKE_HOST_SYSTEM_PROCESSOR}-unknown-linux-gnu"
+    COMMENT "Staging sidecar binary for Tauri"
 )
 
 add_executable(directory-size-aggregator-test
@@ -74,4 +88,50 @@ target_include_directories(scan-result-serializer-test
 add_test(
     NAME scan-result-serializer
     COMMAND scan-result-serializer-test
+)
+
+add_executable(linux-file-scanner-test
+    cpp/tests/platform/LinuxFileScannerTest.cpp
+    cpp/src/platform/linux/LinuxFileScanner.cpp
+    cpp/src/platform/linux/LinuxFileEntryMapper.cpp
+)
+
+target_include_directories(linux-file-scanner-test
+    PRIVATE
+        cpp/include
+)
+
+add_test(
+    NAME linux-file-scanner
+    COMMAND linux-file-scanner-test
+)
+
+add_executable(linux-disk-usage-test
+    cpp/tests/platform/LinuxDiskUsageProviderTest.cpp
+    cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
+)
+
+target_include_directories(linux-disk-usage-test
+    PRIVATE
+        cpp/include
+)
+
+add_test(
+    NAME linux-disk-usage
+    COMMAND linux-disk-usage-test
+)
+
+add_executable(linux-volume-provider-test
+    cpp/tests/platform/LinuxVolumeProviderTest.cpp
+    cpp/src/platform/linux/LinuxVolumeProvider.cpp
+)
+
+target_include_directories(linux-volume-provider-test
+    PRIVATE
+        cpp/include
+)
+
+add_test(
+    NAME linux-volume-provider
+    COMMAND linux-volume-provider-test
 )

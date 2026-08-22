@@ -22,6 +22,14 @@ export default defineConfigWithVueTs(
   vueTsConfigs.recommended,
 
   {
+    name: 'app/vue-rules',
+    rules: {
+      // The treemap and volumes cards are intentionally single-word components.
+      'vue/multi-word-component-names': ['error', { ignores: ['Volumes', 'Treemap'] }],
+    },
+  },
+
+  {
     ...pluginVitest.configs.recommended,
     files: ['src/**/__tests__/*'],
   },

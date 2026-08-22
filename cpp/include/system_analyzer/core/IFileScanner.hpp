@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <functional>
 
+#include "system_analyzer/core/ScanContext.hpp"
 #include "system_analyzer/domain/FileEntry.hpp"
 
 namespace system_analyzer::core
@@ -12,12 +13,17 @@ namespace system_analyzer::core
     {
     public:
         using EntryCallback = std::function<void(const domain::FileEntry &)>;
+        using ErrorCallback = std::function<void(
+            const std::filesystem::path &,
+            const std::error_code &)>;
 
         virtual ~IFileScanner() = default;
 
         virtual void scan(
             const std::filesystem::path &root,
-            const EntryCallback &callback) = 0;
+            const EntryCallback &callback,
+            const ErrorCallback &errorCallback,
+            const ScanContext &context = {}) = 0;
     };
 
 } // namespace system_analyzer::core
