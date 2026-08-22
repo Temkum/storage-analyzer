@@ -33,15 +33,9 @@ function jumpTo(id: string) {
       </div>
 
       <nav class="sidebar__nav" aria-label="Dashboard sections">
-        <a
-          v-for="item in NAV_ITEMS"
-          :key="item.id"
-          class="sidebar__link"
-          :class="{ 'sidebar__link--active': activeId === item.id }"
-          :href="`#${item.id}`"
-          :aria-current="activeId === item.id ? 'location' : undefined"
-          @click.prevent="jumpTo(item.id)"
-        >
+        <a v-for="item in NAV_ITEMS" :key="item.id" class="sidebar__link"
+          :class="{ 'sidebar__link--active': activeId === item.id }" :href="`#${item.id}`" :title="item.label"
+          :aria-current="activeId === item.id ? 'location' : undefined" @click.prevent="jumpTo(item.id)">
           <span class="sidebar__icon" aria-hidden="true">{{ item.icon }}</span>
           <span class="sidebar__label">{{ item.label }}</span>
         </a>
@@ -86,6 +80,7 @@ function jumpTo(id: string) {
 .sidebar {
   position: fixed;
   inset: 0 auto 0 0;
+  z-index: 20;
   display: flex;
   width: 240px;
   flex-direction: column;
@@ -192,6 +187,7 @@ function jumpTo(id: string) {
 
 .main {
   width: calc(100% - 240px);
+  min-width: 0;
   margin-left: 240px;
 }
 
@@ -249,7 +245,7 @@ function jumpTo(id: string) {
     padding: 18px 10px;
   }
 
-  .brand > div:last-child,
+  .brand>div:last-child,
   .sidebar__label,
   .sidebar__footer {
     display: none;
@@ -262,10 +258,6 @@ function jumpTo(id: string) {
 
   .sidebar__link {
     justify-content: center;
-  }
-
-  .sidebar__link--active .sidebar__label {
-    display: inline;
   }
 
   .sidebar__link--active {
