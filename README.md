@@ -727,7 +727,68 @@ This prevents independent package versions from drifting apart.
 
 ---
 
-## Releases
+## Downloads
+
+Stable releases are published on the [GitHub Releases](https://github.com/Temkum/storage-analyzer/releases) page.
+Download the asset for your platform and architecture from the latest tagged
+release (for example, `v0.2.0`).
+
+### Platform support matrix
+
+| Platform | Architecture | Package format | Status |
+|---|---|---|---|
+| Linux | x86_64 | `.deb`, `.AppImage` | ✅ v1 |
+| Windows | x86_64 | `.msi` (NSIS) | ✅ v1 |
+| macOS | x86_64 / arm64 | `.dmg`, `.app` (unsigned) | ⏳ planned (v1 architecture-ready) |
+
+macOS binaries are architecture-ready and exercised in CI, but GUI bundling is
+deferred to a later release. macOS users can build from source (see
+[Run the Desktop Application](#run-the-desktop-application) to run Disk Analyzer locally.
+
+### Installation by platform
+
+#### Linux
+
+**Debian / Ubuntu (.deb):**
+
+```bash
+sudo apt install ./system-analyzer-x86_64-unknown-linux-gnu.deb
+```
+
+**AppImage (portable, no root required):**
+
+```bash
+chmod +x SystemAnalyzer-x86_64.AppImage
+./SystemAnalyzer-x86_64.AppImage
+```
+
+> Some distributions (notably Arch-based) require the `fuse2` or `fuse3`
+> compatibility package to execute AppImage files:
+> ```bash
+> sudo pacman -S fuse2    # or fuse3
+> ```
+
+#### Windows
+
+Run the installer and follow the setup wizard:
+
+```text
+SystemAnalyzer-0.2.0-x86_64.msi
+```
+
+> The v1 release is **not code-signed**. Windows SmartScreen may display an
+> "Unknown publisher" warning. Click **More info** → **Run anyway** to proceed.
+> Code signing will be added once production signing requirements are defined.
+
+#### macOS (from source, until signed bundling ships)
+
+macOS GUI packaging is deferred for v1, but the engine builds and runs natively.
+See [Run the Desktop Application](#run-the-desktop-application) for `pnpm tauri:dev`
+instructions to build and run locally.
+
+---
+
+## Releases (maintainer section)
 
 The v1 release targets are:
 
