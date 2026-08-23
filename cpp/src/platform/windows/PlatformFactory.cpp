@@ -1,6 +1,7 @@
 #include "system_analyzer/platform/factory.hpp"
 
 #include "system_analyzer/platform/windows/WindowsDiskUsageProvider.hpp"
+#include "system_analyzer/platform/windows/WindowsFileScanner.hpp"
 #include "system_analyzer/platform/windows/WindowsVolumeProvider.hpp"
 
 namespace system_analyzer::platform

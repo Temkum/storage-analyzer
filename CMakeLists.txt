@@ -145,6 +145,7 @@ add_executable(scan-result-serializer-test
 target_include_directories(scan-result-serializer-test
     PRIVATE
         cpp/include
+        cpp/third_party
 )
 
 add_test(
@@ -152,49 +153,54 @@ add_test(
     COMMAND scan-result-serializer-test
 )
 
-add_executable(linux-file-scanner-test
-    cpp/tests/platform/LinuxFileScannerTest.cpp
-)
+# Linux-only: these compile platform/linux/*.cpp directly, which pulls in
+# POSIX-only headers (e.g. sys/statvfs.h). Gate them so MSVC doesn't try to
+# build them on Windows runners.
+if(NOT WIN32)
+    add_executable(linux-file-scanner-test
+        cpp/tests/platform/LinuxFileScannerTest.cpp
+    )
 
-target_include_directories(linux-file-scanner-test
-    PRIVATE
-        cpp/include
-)
+    target_include_directories(linux-file-scanner-test
+        PRIVATE
+            cpp/include
+    )
 
-add_test(
-    NAME linux-file-scanner
-    COMMAND linux-file-scanner-test
-)
+    add_test(
+        NAME linux-file-scanner
+        COMMAND linux-file-scanner-test
+    )
 
-add_executable(linux-disk-usage-test
-    cpp/tests/platform/LinuxDiskUsageProviderTest.cpp
-    cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
-)
+    add_executable(linux-disk-usage-test
+        cpp/tests/platform/LinuxDiskUsageProviderTest.cpp
+        cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
+    )
 
-target_include_directories(linux-disk-usage-test
-    PRIVATE
-        cpp/include
-)
+    target_include_directories(linux-disk-usage-test
+        PRIVATE
+            cpp/include
+    )
 
-add_test(
-    NAME linux-disk-usage
-    COMMAND linux-disk-usage-test
-)
+    add_test(
+        NAME linux-disk-usage
+        COMMAND linux-disk-usage-test
+    )
 
-add_executable(linux-volume-provider-test
-    cpp/tests/platform/LinuxVolumeProviderTest.cpp
-    cpp/src/platform/linux/LinuxVolumeProvider.cpp
-)
+    add_executable(linux-volume-provider-test
+        cpp/tests/platform/LinuxVolumeProviderTest.cpp
+        cpp/src/platform/linux/LinuxVolumeProvider.cpp
+    )
 
-target_include_directories(linux-volume-provider-test
-    PRIVATE
-        cpp/include
-)
+    target_include_directories(linux-volume-provider-test
+        PRIVATE
+            cpp/include
+    )
 
-add_test(
-    NAME linux-volume-provider
-    COMMAND linux-volume-provider-test
-)
+    add_test(
+        NAME linux-volume-provider
+        COMMAND linux-volume-provider-test
+    )
+endif()
 
 # Cross-platform contract test
 #
@@ -210,6 +216,7 @@ add_executable(scan-schema-contract-test
 target_include_directories(scan-schema-contract-test
     PRIVATE
         cpp/include
+        cpp/third_party
 )
 
 add_test(
