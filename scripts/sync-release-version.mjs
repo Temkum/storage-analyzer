@@ -1,10 +1,14 @@
 #!/usr/bin/env node
 /**
- * Syncs the root VERSION file into every manifest that carries the product
- * version (web package.json, tauri.conf.json, Cargo.toml, CMakeLists.txt).
+ * Syncs a release version into every manifest that carries the product
+ * version: tauri.conf.json (Tauri bundle), Cargo.toml (Rust crate), and
+ * CMakeLists.txt (C++ project). The web app's package.json is intentionally
+ * not touched — nothing in the web UI consumes it and syncing it would only
+ * create drift against the pnpm lockfile.
  *
- * Usage: node scripts/sync-version.mjs [version]
- *        When no argument is given, the value from VERSION is used.
+ * Usage: node scripts/sync-release-version.mjs <version>
+ *        (or omit the argument to read VERSION — but the release workflow
+ *        always passes the tag version explicitly)
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -26,14 +30,6 @@ const write =
   (...parts) =>
   (content) =>
     writeFileSync(join(repoRoot, ...parts), content);
-
-// apps/web/package.json
-{
-  const path = ['apps', 'web', 'package.json'];
-  const json = JSON.parse(read(...path));
-  json.version = version;
-  write(...path)(`${JSON.stringify(json, null, 2)}\n`);
-}
 
 // apps/desktop/src-tauri/tauri.conf.json
 {

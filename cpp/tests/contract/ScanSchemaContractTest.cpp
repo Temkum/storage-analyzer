@@ -1,6 +1,8 @@
-#include <cassert>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 
 #include <nlohmann/json.hpp>
@@ -22,25 +24,66 @@ using system_analyzer::serialization::ScanResultSerializer;
 namespace
 {
 
+    // The contract gate must fail even in Release builds, where assert() is
+    // compiled out — otherwise Windows CI (which builds Release) would run
+    // zero checks. Throw instead of asserting.
+    [[noreturn]] void fail(
+        const char *message)
+    {
+        throw std::runtime_error(message);
+    }
+
+    void require(
+        bool condition,
+        const char *message)
+    {
+        if (!condition)
+        {
+            fail(message);
+        }
+    }
+
+    void requireUnsigned(const nlohmann::json &value)
+    {
+        require(value.is_number_unsigned(),
+                "expected an unsigned integer");
+    }
+
     void writeFile(
         const std::filesystem::path &path,
         const std::string &content)
     {
         std::ofstream stream(path);
 
-        assert(stream.is_open());
+        if (!stream.is_open())
+        {
+            fail("failed to create fixture file");
+        }
 
         stream << content;
     }
 
-    void assertUnsigned(const nlohmann::json &value)
-    {
-        assert(value.is_number_unsigned());
-    }
-
 } // namespace
 
+void runContract();
+
 int main()
+{
+    try
+    {
+        runContract();
+        return 0;
+    }
+    catch (const std::exception &error)
+    {
+        std::cerr << "Scan schema contract violation: "
+                  << error.what()
+                  << '\n';
+        return 1;
+    }
+}
+
+void runContract()
 {
     namespace fs = std::filesystem;
 
@@ -62,98 +105,113 @@ int main()
         nlohmann::json::parse(ScanResultSerializer::toJson(result));
 
     // Top-level schema ------------------------------------------------------
-    assert(json.is_object());
+    require(json.is_object(), "top level must be an object");
 
     for (const char *key : {"rootPath", "totalSize", "fileCount",
                             "directoryCount", "durationMs", "diskUsage",
                             "volumes", "entries", "directories", "errors"})
     {
-        assert(json.contains(key));
+        require(json.contains(key), "top level must contain key");
     }
 
-    assert(json["rootPath"].is_string());
-    assertUnsigned(json["totalSize"]);
-    assertUnsigned(json["fileCount"]);
-    assertUnsigned(json["directoryCount"]);
-    assertUnsigned(json["durationMs"]);
+    require(json["rootPath"].is_string(),
+            "rootPath must be a string");
+    requireUnsigned(json["totalSize"]);
+    requireUnsigned(json["fileCount"]);
+    requireUnsigned(json["directoryCount"]);
+    requireUnsigned(json["durationMs"]);
 
     // Invariants that must hold on every platform ---------------------------
-    assert(json["totalSize"] >= 128 + 512 + 64);
-    assert(json["fileCount"] == 3);
-    assert(json["directoryCount"] == 1); // "nested"; root is not yielded
-    assert(json["directories"].size() ==
-           json["directoryCount"].get<unsigned>() + 1);
+    require(json["totalSize"] >= 128 + 512 + 64,
+            "totalSize must cover the fixture files");
+    require(json["fileCount"] == 3,
+            "fileCount must match the fixture");
+    require(json["directoryCount"] == 1, // "nested"; root is not yielded
+            "directoryCount must match the fixture");
+    require(json["directories"].size() ==
+                json["directoryCount"].get<unsigned>() + 1,
+            "directories must include the root");
 
     // Entries ---------------------------------------------------------------
-    assert(json["entries"].is_array());
-    assert(json["entries"].size() ==
-           json["fileCount"].get<unsigned>() +
-               json["directoryCount"].get<unsigned>());
+    require(json["entries"].is_array(), "entries must be an array");
+    require(json["entries"].size() ==
+                json["fileCount"].get<unsigned>() +
+                    json["directoryCount"].get<unsigned>(),
+            "entries must cover files and directories");
 
     for (const auto &entry : json["entries"])
     {
-        assert(entry.is_object());
-        assert(entry.contains("path") && entry["path"].is_string());
-        assert(entry.contains("type") && entry["type"].is_number_unsigned());
-        assert(entry.contains("size") && entry["size"].is_number_unsigned());
+        require(entry.is_object(), "entry must be an object");
+        require(entry.contains("path") && entry["path"].is_string(),
+                "entry must have a string path");
+        require(entry.contains("type") && entry["type"].is_number_unsigned(),
+                "entry must have an unsigned type");
+        require(entry.contains("size") && entry["size"].is_number_unsigned(),
+                "entry must have an unsigned size");
 
         const auto type = entry["type"].get<unsigned>();
-        assert(type <= 3); // File, Directory, Symlink, Other
+        require(type <= 3, "entry type outside enum domain"); // File, Directory, Symlink, Other
     }
 
     // Directories -----------------------------------------------------------
-    assert(json["directories"].is_array());
+    require(json["directories"].is_array(), "directories must be an array");
 
     for (const auto &directory : json["directories"])
     {
-        assert(directory.is_object());
-        assert(directory.contains("path") && directory["path"].is_string());
-        assert(directory.contains("size") && directory["size"].is_number_unsigned());
+        require(directory.is_object(), "directory must be an object");
+        require(directory.contains("path") && directory["path"].is_string(),
+                "directory must have a string path");
+        require(directory.contains("size") && directory["size"].is_number_unsigned(),
+                "directory must have an unsigned size");
     }
 
     // Errors ----------------------------------------------------------------
-    assert(json["errors"].is_array());
+    require(json["errors"].is_array(), "errors must be an array");
 
     for (const auto &error : json["errors"])
     {
-        assert(error.is_object());
-        assert(error.contains("path") && error["path"].is_string());
-        assert(error.contains("message") && error["message"].is_string());
+        require(error.is_object(), "error must be an object");
+        require(error.contains("path") && error["path"].is_string(),
+                "error must have a string path");
+        require(error.contains("message") && error["message"].is_string(),
+                "error must have a string message");
     }
 
     // Disk usage ------------------------------------------------------------
-    assert(json["diskUsage"].is_object());
+    require(json["diskUsage"].is_object(), "diskUsage must be an object");
 
-    assert(json["diskUsage"]["path"].is_string());
-    assertUnsigned(json["diskUsage"]["totalBytes"]);
-    assertUnsigned(json["diskUsage"]["freeBytes"]);
-    assertUnsigned(json["diskUsage"]["availableBytes"]);
-    assertUnsigned(json["diskUsage"]["usedBytes"]);
+    require(json["diskUsage"]["path"].is_string(),
+            "diskUsage path must be a string");
+    requireUnsigned(json["diskUsage"]["totalBytes"]);
+    requireUnsigned(json["diskUsage"]["freeBytes"]);
+    requireUnsigned(json["diskUsage"]["availableBytes"]);
+    requireUnsigned(json["diskUsage"]["usedBytes"]);
 
     // Volumes ---------------------------------------------------------------
-    assert(json["volumes"].is_array());
+    require(json["volumes"].is_array(), "volumes must be an array");
 
     for (const auto &volume : json["volumes"])
     {
-        assert(volume.is_object());
+        require(volume.is_object(), "volume must be an object");
 
         for (const char *key : {"mountPoint", "filesystem", "totalBytes",
                                 "freeBytes", "availableBytes", "usedBytes",
                                 "readOnly"})
         {
-            assert(volume.contains(key));
+            require(volume.contains(key), "volume must contain key");
         }
 
-        assert(volume["mountPoint"].is_string());
-        assert(volume["filesystem"].is_string());
-        assertUnsigned(volume["totalBytes"]);
-        assertUnsigned(volume["freeBytes"]);
-        assertUnsigned(volume["availableBytes"]);
-        assertUnsigned(volume["usedBytes"]);
-        assert(volume["readOnly"].is_boolean());
+        require(volume["mountPoint"].is_string(),
+                "volume mountPoint must be a string");
+        require(volume["filesystem"].is_string(),
+                "volume filesystem must be a string");
+        requireUnsigned(volume["totalBytes"]);
+        requireUnsigned(volume["freeBytes"]);
+        requireUnsigned(volume["availableBytes"]);
+        requireUnsigned(volume["usedBytes"]);
+        require(volume["readOnly"].is_boolean(),
+                "volume readOnly must be a boolean");
     }
 
     std::filesystem::remove_all(tempRoot, cleanupError);
-
-    return 0;
 }

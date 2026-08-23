@@ -48,6 +48,10 @@ jobs:
           workspaces: apps/desktop/src-tauri
 
       - name: Build C++ engine + run tests
+        env:
+          # Release bundles must ship an optimized sidecar, not the Debug
+          # default of build-engine.sh.
+          ENGINE_BUILD_TYPE: Release
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
             .\\scripts\\build-engine.ps1
@@ -56,13 +60,16 @@ jobs:
           fi
         shell: bash
 
-      - name: Sync version from tag
-        run: node scripts/sync-version.mjs "${GITHUB_REF_NAME#v}"
-        shell: bash
-
       - name: Web install
         working-directory: apps/web
         run: pnpm install --frozen-lockfile
+
+      # tauri.conf.json/Cargo.toml/CMakeLists.txt carry the version that goes
+      # into the bundle; sync them from the tag before building. This happens
+      # here (after engine + web) so a failing build never rewrites manifests,
+      # and nothing reverts the sync afterwards.
+      - name: Sync version from tag
+        run: node scripts/sync-release-version.mjs "${GITHUB_REF_NAME#v}"
 
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version '^2' --locked

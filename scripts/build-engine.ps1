@@ -13,6 +13,8 @@ $ErrorActionPreference = "Stop"
 $RepoRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $RepoRoot
 
+New-Item -ItemType Directory -Force -Path "apps/desktop/src-tauri/binaries" | Out-Null
+
 $CmakeArgs = @("-S", ".", "-B", "build")
 if ($Generator -ne "") {
     $CmakeArgs += @("-G", $Generator)

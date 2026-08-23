@@ -13,6 +13,8 @@ cd "$(dirname "$0")/.."
 GENERATOR="${ENGINE_GENERATOR:-Ninja}"
 BUILD_TYPE="${ENGINE_BUILD_TYPE:-Debug}"
 
+mkdir -p apps/desktop/src-tauri/binaries
+
 cmake -S . -B build -G "$GENERATOR" -DCMAKE_BUILD_TYPE="$BUILD_TYPE" "$@"
 cmake --build build
 ctest --output-on-failure --test-dir build

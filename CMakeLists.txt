@@ -30,8 +30,16 @@ if(WIN32)
     set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}.exe")
 elseif(APPLE)
     set(SYSTEM_ANALYZER_PLATFORM_DIR macos)
-    set(SIDECAR_TARGET_TRIPLE "x86_64-apple-darwin" CACHE STRING
-        "Tauri sidecar target triple")
+    # Rust target triples name Apple Silicon "aarch64", while CMake reports
+    # the host processor as "arm64" — map it so the staged sidecar name
+    # matches what Tauri's externalBin resolution expects.
+    if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "arm64")
+        set(SIDECAR_TARGET_TRIPLE "aarch64-apple-darwin" CACHE STRING
+            "Tauri sidecar target triple")
+    else()
+        set(SIDECAR_TARGET_TRIPLE "x86_64-apple-darwin" CACHE STRING
+            "Tauri sidecar target triple")
+    endif()
     set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}")
 else()
     set(SYSTEM_ANALYZER_PLATFORM_DIR linux)
@@ -86,6 +94,10 @@ target_include_directories(system-analyzer
 # Stage the engine binary where Tauri expects it so `cargo tauri dev` always
 # runs a sidecar that matches the freshly-built C++ code.
 set(TAURI_BINARIES_DIR "${CMAKE_SOURCE_DIR}/apps/desktop/src-tauri/binaries")
+
+# The directory is gitignored, so a fresh checkout has no binaries/ dir yet;
+# create it before the POST_BUILD copy runs.
+file(MAKE_DIRECTORY "${TAURI_BINARIES_DIR}")
 
 add_custom_command(
     TARGET system-analyzer POST_BUILD
