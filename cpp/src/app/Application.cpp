@@ -1,10 +1,10 @@
 #include <chrono>
+#include <memory>
+
 #include "system_analyzer/app/Application.hpp"
 
 #include "system_analyzer/core/DirectorySizeAggregator.hpp"
-#include "system_analyzer/platform/linux/LinuxDiskUsageProvider.hpp"
-#include "system_analyzer/platform/linux/LinuxFileScanner.hpp"
-#include "system_analyzer/platform/linux/LinuxVolumeProvider.hpp"
+#include "system_analyzer/platform/factory.hpp"
 
 namespace system_analyzer::app
 {
@@ -15,23 +15,20 @@ namespace system_analyzer::app
     {
         const auto start = std::chrono::steady_clock::now();
 
-        using core::DirectorySizeAggregator;
-        using platform::linux::LinuxDiskUsageProvider;
-        using platform::linux::LinuxFileScanner;
-        using platform::linux::LinuxVolumeProvider;
+        // Platform selection is resolved by the factory; no OS branching here.
+        auto fileScanner = platform::createFileScanner();
+        auto diskUsageProvider = platform::createDiskUsageProvider();
+        auto volumeProvider = platform::createVolumeProvider();
+
+        core::DirectorySizeAggregator aggregator;
 
         domain::ScanResult result;
         result.rootPath = root;
 
-        LinuxFileScanner scanner;
-        DirectorySizeAggregator aggregator;
-        LinuxDiskUsageProvider diskUsageProvider;
-        LinuxVolumeProvider volumeProvider;
+        result.diskUsage = diskUsageProvider->getUsage(root);
+        result.volumes = volumeProvider->getVolumes();
 
-        result.diskUsage = diskUsageProvider.getUsage(root);
-        result.volumes = volumeProvider.getVolumes();
-
-        scanner.scan(
+        fileScanner->scan(
             root,
             [&result, &aggregator](
                 const domain::FileEntry &entry)

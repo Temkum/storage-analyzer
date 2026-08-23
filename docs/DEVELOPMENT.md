@@ -1,5 +1,91 @@
 # Development Log
 
+## Cross-Platform Packaging (Disk Analyzer v1)
+
+Status: Implemented (Linux/Windows bundling verified via CI)
+
+### Target matrix
+
+| OS | Architecture | Bundles | Notes |
+|----|--------------|---------|-------|
+| Linux | x86_64 | `.deb`, `.AppImage` | release artifacts |
+| Windows | x86_64 | NSIS `.exe` installer | unsigned (SmartScreen warning expected) |
+| macOS | x86_64 | none yet | platform layer implemented, bundling deferred |
+
+### Platform architecture
+
+The C++ engine selects its providers through a factory
+(`cpp/include/system_analyzer/platform/factory.hpp`), implemented once per
+OS under `cpp/src/platform/<os>/PlatformFactory.cpp`. Application code never
+branches on the operating system.
+
+```text
+cpp/src/platform/
+├── common/    portable scanner/mapper (header-only, shared by all OSes)
+├── linux/     LinuxFileScanner, LinuxDiskUsageProvider, LinuxVolumeProvider
+├── windows/   Windows* providers (Win32: drives, GetDiskFreeSpaceExW)
+└── macos/     MacOS* providers (statvfs, getmntinfo)
+```
+
+Rust-side OS integration lives in `apps/desktop/src-tauri/src/platform/`
+(file-manager reveal per OS).
+
+### Cross-platform contract test
+
+`scan-schema-contract` (ctest) runs a real scan through the Application and
+asserts the serialized `ScanResult` keeps a stable JSON schema — fields,
+types, enum domain, error/volume semantics — on every platform. This is the
+gate that keeps all sidecars wire-compatible with the Vue UI.
+
+### Building
+
+```bash
+# Linux / macOS
+./scripts/build-engine.sh
+
+# Windows (PowerShell)
+.\scripts\build-engine.ps1
+```
+
+Both scripts configure CMake, build the engine, run ctest, and stage the
+sidecar into `apps/desktop/src-tauri/binaries/` with the correct target
+triple (e.g. `system-analyzer-x86_64-unknown-linux-gnu`).
+
+### Versioning
+
+`VERSION` at the repo root is the single source of truth. After changing it:
+
+```bash
+node scripts/sync-version.mjs
+```
+
+This updates `apps/web/package.json`, `apps/desktop/src-tauri/tauri.conf.json`,
+`Cargo.toml`, and `CMakeLists.txt`.
+
+### CI
+
+- `.github/workflows/ci.yml` — every push/PR: engine build + ctest, cargo
+  check/test, web lint/type-check/tests/build on `ubuntu-latest` and
+  `windows-latest` (native GCC/MSVC builds; no cross-compilation).
+- `.github/workflows/release.yml` — on `v*` tags: builds engine, syncs the
+  tag version, bundles `.deb` + `.AppImage` (Linux) and NSIS `.exe`
+  (Windows), then drafts a GitHub release with the artifacts.
+
+### Release runbook
+
+1. Update `VERSION` (e.g. `0.1.0` → `0.2.0`), run
+   `node scripts/sync-version.mjs`, commit.
+2. Tag: `git tag v0.2.0 && git push origin v0.2.0`.
+3. CI builds both platforms and drafts the release; review and publish.
+
+### Known caveats
+
+- Windows binaries are unsigned; SmartScreen will warn on first run.
+- AppImage requires FUSE (`libfuse2`) on some distributions.
+- macOS bundling is deferred; the platform layer is already in place.
+
+---
+
 ## Phase 0: Environment Setup
 
 Status: Complete
