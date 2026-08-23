@@ -1,4 +1,3 @@
-````md
 # System Analyzer
 
 System Analyzer is a cross-platform desktop system diagnostics application
@@ -34,10 +33,10 @@ responsibility:
 
 ```text
 ┌──────────────────────────────────────────────────────────────┐
-│  Vue 3 frontend (apps/web)                                  │
+│  Vue 3 frontend (apps/web)                                   │
 │                                                              │
 │  Dashboard · Treemap · Breadcrumbs · Largest Files           │
-│  File Types · Volumes · Storage Usage · Scan Controls         │
+│  File Types · Volumes · Storage Usage · Scan Controls        │
 └────────────────────────────┬─────────────────────────────────┘
                              │
                              │ Tauri commands
@@ -48,7 +47,7 @@ responsibility:
                              │
 ┌────────────────────────────▼─────────────────────────────────┐
 │  Tauri 2 desktop shell                                       │
-│  apps/desktop/src-tauri                                       │
+│  apps/desktop/src-tauri                                      │
 │                                                              │
 │  Sidecar orchestration · Progress events · Cancellation      │
 │  OS integration · File-manager integration                   │
@@ -62,7 +61,7 @@ responsibility:
 │  cpp/                                                        │
 │                                                              │
 │  Filesystem traversal · Directory aggregation                │
-│  File analysis · Volume information · JSON serialization      │
+│  File analysis · Volume information · JSON serialization     │
 └──────────────────────────────────────────────────────────────┘
 ````
 
@@ -132,13 +131,13 @@ Every platform produces the same `ScanResult` structure.
 The actual values naturally differ between machines, but the following must
 remain stable across platforms:
 
-* Field names
-* Field types
-* Enum domains
-* Error semantics
-* Volume semantics
-* Read-only semantics
-* Serialization behavior
+- Field names
+- Field types
+- Enum domains
+- Error semantics
+- Volume semantics
+- Read-only semantics
+- Serialization behavior
 
 The `scan-schema-contract` test performs a real application-level scan and
 validates the serialized contract. This prevents Linux, Windows, and macOS
@@ -238,13 +237,13 @@ target operating system and architecture.
 
 #### All platforms
 
-* CMake >= 3.20
-* Ninja
-* C++20 compiler
-* Rust stable
-* Tauri CLI
-* Node.js `^22.18.0 || >=24.12.0`
-* pnpm
+- CMake >= 3.20
+- Ninja
+- C++20 compiler
+- Rust stable
+- Tauri CLI
+- Node.js `^22.18.0 || >=24.12.0`
+- pnpm
 
 #### Linux
 
@@ -269,12 +268,12 @@ specific requirements.
 
 #### Windows
 
-* Visual Studio Build Tools or Visual Studio with the MSVC C++ workload
-* Windows SDK
-* CMake
-* Ninja
-* Rust stable
-* WebView2
+- Visual Studio Build Tools or Visual Studio with the MSVC C++ workload
+- Windows SDK
+- CMake
+- Ninja
+- Rust stable
+- WebView2
 
 #### macOS
 
@@ -496,12 +495,12 @@ Each drill-down starts a new scan rooted at the selected directory.
 
 The complete dashboard is therefore scoped to the current location:
 
-* Summary
-* Treemap
-* Largest files
-* File types
-* Volumes
-* Disk usage
+- Summary
+- Treemap
+- Largest files
+- File types
+- Volumes
+- Disk usage
 
 Breadcrumb navigation allows returning to any previously visited ancestor.
 
@@ -520,14 +519,14 @@ ctest --output-on-failure --test-dir build
 
 The C++ test suite covers:
 
-* Filesystem scanning
-* Directory aggregation
-* Disk usage providers
-* Volume providers
-* Serialization
-* Error behavior
-* Scan result contracts
-* Platform-specific providers
+- Filesystem scanning
+- Directory aggregation
+- Disk usage providers
+- Volume providers
+- Serialization
+- Error behavior
+- Scan result contracts
+- Platform-specific providers
 
 ### Rust/Tauri
 
@@ -601,18 +600,18 @@ There is no C++ cross-compilation in the normal release pipeline.
 
 Native builds are preferred because they provide:
 
-* Native compiler behavior
-* Native system headers
-* Native platform APIs
-* More reliable filesystem tests
-* Easier debugging
-* Fewer cross-compilation toolchain issues
+- Native compiler behavior
+- Native system headers
+- Native platform APIs
+- More reliable filesystem tests
+- Easier debugging
+- Fewer cross-compilation toolchain issues
 
 CI caching should be enabled for:
 
-* Rust dependencies
-* pnpm store
-* CMake builds/ccache where appropriate
+- Rust dependencies
+- pnpm store
+- CMake builds/ccache where appropriate
 
 ---
 
@@ -736,7 +735,7 @@ release (for example, `v0.2.0`).
 ### Platform support matrix
 
 | Platform | Architecture | Package format | Status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Linux | x86_64 | `.deb`, `.AppImage` | ✅ v1 |
 | Windows | x86_64 | `.msi` (NSIS) | ✅ v1 |
 | macOS | x86_64 / arm64 | `.dmg`, `.app` (unsigned) | ⏳ planned (v1 architecture-ready) |
@@ -764,6 +763,7 @@ chmod +x SystemAnalyzer-x86_64.AppImage
 
 > Some distributions (notably Arch-based) require the `fuse2` or `fuse3`
 > compatibility package to execute AppImage files:
+>
 > ```bash
 > sudo pacman -S fuse2    # or fuse3
 > ```
@@ -877,26 +877,26 @@ Automatic application updates are currently out of scope.
 
 ### Disk Analyzer v1
 
-* [x] Native C++ scanning engine
-* [x] Directory size aggregation
-* [x] Scan result JSON contract
-* [x] Vue 3 dashboard
-* [x] Interactive treemap
-* [x] Directory drill-down
-* [x] Breadcrumb navigation
-* [x] Largest-file analysis
-* [x] File-type analysis
-* [x] Volume analysis
-* [x] Scan progress
-* [ ] Scan cancellation
-* [ ] Permission/error handling hardening
-* [ ] Symlink edge-case handling
-* [ ] Disappearing-file handling
-* [ ] Large-tree performance pass
-* [ ] Linux x86_64 packaging
-* [ ] Windows x86_64 packaging
-* [ ] macOS platform completion
-* [ ] Production release validation
+- [x] Native C++ scanning engine
+- [x] Directory size aggregation
+- [x] Scan result JSON contract
+- [x] Vue 3 dashboard
+- [x] Interactive treemap
+- [x] Directory drill-down
+- [x] Breadcrumb navigation
+- [x] Largest-file analysis
+- [x] File-type analysis
+- [x] Volume analysis
+- [x] Scan progress
+- [ ] Scan cancellation
+- [ ] Permission/error handling hardening
+- [ ] Symlink edge-case handling
+- [ ] Disappearing-file handling
+- [ ] Large-tree performance pass
+- [ ] Linux x86_64 packaging
+- [ ] Windows x86_64 packaging
+- [ ] macOS platform completion
+- [ ] Production release validation
 
 ### System Analyzer Phase 2: Network Analyzer
 
@@ -914,18 +914,18 @@ Platform NetworkUsageProvider
 
 Planned capabilities:
 
-* [ ] Network interface discovery
-* [ ] Current download throughput
-* [ ] Current upload throughput
-* [ ] Aggregate network usage
-* [ ] 24-hour network usage history
-* [ ] Per-application network consumption
-* [ ] Linux network provider
-* [ ] Windows network provider
-* [ ] macOS network provider
-* [ ] Cross-platform network JSON contract
-* [ ] Network usage dashboard
-* [ ] Application-level network breakdown
+- [ ] Network interface discovery
+- [ ] Current download throughput
+- [ ] Current upload throughput
+- [ ] Aggregate network usage
+- [ ] 24-hour network usage history
+- [ ] Per-application network consumption
+- [ ] Linux network provider
+- [ ] Windows network provider
+- [ ] macOS network provider
+- [ ] Cross-platform network JSON contract
+- [ ] Network usage dashboard
+- [ ] Application-level network breakdown
 
 Per-application network accounting will use OS-specific implementations behind
 the same C++ abstraction because Linux, Windows, and macOS expose different
@@ -935,15 +935,15 @@ network/process accounting mechanisms.
 
 The following are intentionally deferred until the core analyzer is stable:
 
-* [ ] File search
-* [ ] Duplicate detection
-* [ ] Similar-file detection
-* [ ] Cleanup recommendations
-* [ ] Delete/move operations
-* [ ] Exclusion rules
-* [ ] Historical scan comparison
-* [ ] Scan caching
-* [ ] Background monitoring
+- [ ] File search
+- [ ] Duplicate detection
+- [ ] Similar-file detection
+- [ ] Cleanup recommendations
+- [ ] Delete/move operations
+- [ ] Exclusion rules
+- [ ] Historical scan comparison
+- [ ] Scan caching
+- [ ] Background monitoring
 
 ---
 
@@ -1039,14 +1039,14 @@ implementations across operating systems.
 
 Additional project documentation:
 
-* [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
+- [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md)
   Development history, architecture decisions, build instructions, packaging
   status, and release sequencing.
 
-* [`docs/CPP-CHEATSHEET.md`](docs/CPP-CHEATSHEET.md)
+- [`docs/CPP-CHEATSHEET.md`](docs/CPP-CHEATSHEET.md)
   Common CMake, Ninja, ctest, and GDB commands.
 
-* [`docs/VUE-CHEATSHEET.md`](docs/VUE-CHEATSHEET.md)
+- [`docs/VUE-CHEATSHEET.md`](docs/VUE-CHEATSHEET.md)
   Vue, TypeScript, Vite, and frontend development notes.
 
 ---
