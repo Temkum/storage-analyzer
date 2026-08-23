@@ -1,18 +1,14 @@
 #pragma once
 
-#include "system_analyzer/core/IFileScanner.hpp"
+#include "system_analyzer/platform/common/StandardFileScanner.hpp"
 
 namespace system_analyzer::platform::linux
 {
 
-    class LinuxFileScanner final : public core::IFileScanner
+    /// Linux file scanner; traversal logic is shared via the portable
+    /// standard scanner (std::filesystem based).
+    class LinuxFileScanner final : public common::StandardFileScanner
     {
-    public:
-        void scan(
-            const std::filesystem::path &root,
-            const EntryCallback &entryCallback,
-            const ErrorCallback &errorCallback,
-            const core::ScanContext &context = {}) override;
     };
 
 } // namespace system_analyzer::platform::linux

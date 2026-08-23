@@ -1,4 +1,4 @@
-use std::process::Command;
+mod platform;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -136,6 +136,11 @@ fn cancel_scan(state: State<'_, CurrentScan>) -> Result<(), String> {
     Ok(())
 }
 
+/// Best-effort "reveal in file manager" for a scanned file/directory.
+///
+/// Delegates to the platform integration layer; returns an error when the
+/// path no longer exists on disk (the filesystem may have changed since the
+/// scan) or when no file manager could be launched.
 #[tauri::command]
 fn reveal_in_file_manager(path: String) -> Result<(), String> {
     let target = std::path::PathBuf::from(&path);
@@ -144,37 +149,7 @@ fn reveal_in_file_manager(path: String) -> Result<(), String> {
         return Err(format!("File no longer exists on disk: {path}"));
     }
 
-    let parent = target
-        .parent()
-        .ok_or_else(|| "Path has no parent directory.".to_string())?;
-
-    let desktop = std::env::var("XDG_CURRENT_DESKTOP")
-        .unwrap_or_default()
-        .to_lowercase();
-
-    let launched = if desktop.contains("kde") {
-        spawn_detached(Command::new("dolphin").args(["--select", path.as_str()]))
-    } else if desktop.contains("gnome") || desktop.contains("ubuntu") {
-        spawn_detached(Command::new("nautilus").args(["--select", path.as_str()]))
-    } else if desktop.contains("xfce") {
-        spawn_detached(Command::new("thunar").arg(parent))
-    } else {
-        spawn_detached(Command::new("xdg-open").arg(parent))
-    };
-
-    if launched {
-        return Ok(());
-    }
-
-    if spawn_detached(Command::new("xdg-open").arg(parent)) {
-        Ok(())
-    } else {
-        Err(format!("Could not launch a file manager for: {path}"))
-    }
-}
-
-fn spawn_detached(command: &mut Command) -> bool {
-    command.spawn().is_ok()
+    platform::reveal_in_file_manager(&target)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

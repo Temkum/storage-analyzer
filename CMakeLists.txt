@@ -17,16 +17,65 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-add_executable(system-analyzer
-    cpp/src/main.cpp
+# Platform selection
+# The sidecar is built natively per OS (no C++ cross-compilation). Each
+# platform owns a directory under cpp/src/platform/<os> containing its
+# providers plus a PlatformFactory.cpp that implements the factory declared
+# in cpp/include/system_analyzer/platform/factory.hpp.
+
+if(WIN32)
+    set(SYSTEM_ANALYZER_PLATFORM_DIR windows)
+    set(SIDECAR_TARGET_TRIPLE "x86_64-pc-windows-msvc" CACHE STRING
+        "Tauri sidecar target triple")
+    set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}.exe")
+elseif(APPLE)
+    set(SYSTEM_ANALYZER_PLATFORM_DIR macos)
+    set(SIDECAR_TARGET_TRIPLE "x86_64-apple-darwin" CACHE STRING
+        "Tauri sidecar target triple")
+    set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}")
+else()
+    set(SYSTEM_ANALYZER_PLATFORM_DIR linux)
+    set(SIDECAR_TARGET_TRIPLE "${CMAKE_HOST_SYSTEM_PROCESSOR}-unknown-linux-gnu" CACHE STRING
+        "Tauri sidecar target triple")
+    set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}")
+endif()
+
+message(STATUS "Platform layer: ${SYSTEM_ANALYZER_PLATFORM_DIR} (sidecar: ${SIDECAR_FILENAME})")
+
+set(PLATFORM_SOURCES
+    cpp/src/platform/${SYSTEM_ANALYZER_PLATFORM_DIR}/PlatformFactory.cpp
+)
+
+if(WIN32)
+    list(APPEND PLATFORM_SOURCES
+        cpp/src/platform/windows/WindowsVolumeProvider.cpp
+        cpp/src/platform/windows/WindowsDiskUsageProvider.cpp
+    )
+elseif(APPLE)
+    list(APPEND PLATFORM_SOURCES
+        cpp/src/platform/macos/MacOSVolumeProvider.cpp
+        cpp/src/platform/macos/MacOSDiskUsageProvider.cpp
+    )
+else()
+    list(APPEND PLATFORM_SOURCES
+        cpp/src/platform/linux/LinuxVolumeProvider.cpp
+        cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
+    )
+endif()
+
+# Engine
+
+set(ENGINE_SOURCES
     cpp/src/app/Application.cpp
     cpp/src/core/SystemInfo.cpp
     cpp/src/core/DirectorySizeAggregator.cpp
-    cpp/src/platform/linux/LinuxFileScanner.cpp
-    cpp/src/platform/linux/LinuxFileEntryMapper.cpp
-    cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
-    cpp/src/platform/linux/LinuxVolumeProvider.cpp
     cpp/src/serialization/ScanResultSerializer.cpp
+    ${PLATFORM_SOURCES}
+)
+
+add_executable(system-analyzer
+    cpp/src/main.cpp
+    ${ENGINE_SOURCES}
 )
 
 target_include_directories(system-analyzer
@@ -42,8 +91,8 @@ add_custom_command(
     TARGET system-analyzer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_FILE:system-analyzer>
-        "${TAURI_BINARIES_DIR}/system-analyzer-${CMAKE_HOST_SYSTEM_PROCESSOR}-unknown-linux-gnu"
-    COMMENT "Staging sidecar binary for Tauri"
+        "${TAURI_BINARIES_DIR}/${SIDECAR_FILENAME}"
+    COMMENT "Staging sidecar binary for Tauri (${SIDECAR_FILENAME})"
 )
 
 add_executable(directory-size-aggregator-test
@@ -92,8 +141,6 @@ add_test(
 
 add_executable(linux-file-scanner-test
     cpp/tests/platform/LinuxFileScannerTest.cpp
-    cpp/src/platform/linux/LinuxFileScanner.cpp
-    cpp/src/platform/linux/LinuxFileEntryMapper.cpp
 )
 
 target_include_directories(linux-file-scanner-test
@@ -134,4 +181,25 @@ target_include_directories(linux-volume-provider-test
 add_test(
     NAME linux-volume-provider
     COMMAND linux-volume-provider-test
+)
+
+# Cross-platform contract test
+#
+# Runs a real scan through the Application and asserts the serialized
+# ScanResult keeps a stable JSON schema on every platform. This is the gate
+# that keeps Linux/Windows/macOS sidecars wire-compatible with the UI.
+
+add_executable(scan-schema-contract-test
+    cpp/tests/contract/ScanSchemaContractTest.cpp
+    ${ENGINE_SOURCES}
+)
+
+target_include_directories(scan-schema-contract-test
+    PRIVATE
+        cpp/include
+)
+
+add_test(
+    NAME scan-schema-contract
+    COMMAND scan-schema-contract-test
 )
