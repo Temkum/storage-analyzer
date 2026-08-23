@@ -89,6 +89,7 @@ add_executable(system-analyzer
 target_include_directories(system-analyzer
     PRIVATE
         cpp/include
+        cpp/third_party
 )
 
 # Stage the engine binary where Tauri expects it so `cargo tauri dev` always
