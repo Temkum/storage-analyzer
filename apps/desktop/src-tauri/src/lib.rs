@@ -1,4 +1,5 @@
 mod platform;
+mod storage;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -15,7 +16,10 @@ struct CurrentScan {
     cancel_requested: Arc<AtomicBool>,
 }
 
-fn sidecar_command(app: &tauri::AppHandle, path: &str) -> Result<tauri_plugin_shell::process::Command, String> {
+fn sidecar_command(
+    app: &tauri::AppHandle,
+    path: &str,
+) -> Result<tauri_plugin_shell::process::Command, String> {
     Ok(app
         .shell()
         .sidecar("system-analyzer")
@@ -29,9 +33,7 @@ async fn scan_directory(
     state: State<'_, CurrentScan>,
     path: String,
 ) -> Result<String, String> {
-    state
-        .cancel_requested
-        .store(false, Ordering::SeqCst);
+    state.cancel_requested.store(false, Ordering::SeqCst);
 
     let mut receiver = {
         let sidecar = sidecar_command(&app, &path)?;
@@ -82,14 +84,10 @@ async fn scan_directory(
             }
 
             CommandEvent::Terminated(payload) => {
-                was_cancelled =
-                    state.cancel_requested.load(Ordering::SeqCst);
+                was_cancelled = state.cancel_requested.load(Ordering::SeqCst);
 
                 if !was_cancelled && payload.code != Some(0) {
-                    return Err(format!(
-                        "C++ engine exited with status: {:?}",
-                        payload.code
-                    ));
+                    return Err(format!("C++ engine exited with status: {:?}", payload.code));
                 }
             }
 
@@ -109,8 +107,7 @@ async fn scan_directory(
         return Err("SCAN_CANCELLED".to_string());
     }
 
-    String::from_utf8(stdout)
-        .map_err(|error| format!("C++ engine returned invalid UTF-8: {error}"))
+    String::from_utf8(stdout).map_err(|error| format!("C++ engine returned invalid UTF-8: {error}"))
 }
 
 /* Requests cancellation of the currently running scan. The running sidecar

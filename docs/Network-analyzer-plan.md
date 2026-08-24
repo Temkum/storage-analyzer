@@ -1,156 +1,70 @@
 # Network Analyzer Implementation Plan
 
-Formalize Network Analyzer as a **phased implementation plan with explicit gates**, just like we did for Disk Analyzer. We should not jump between C++, Rust, and Vue randomly. Each phase should leave the repository in a buildable, testable state.
+Formalize Network Analyzer as a **phased implementation plan with explicit gates**, just like we did for Disk Analyzer. We should not jump between C++, Rust, and Vue randomly. Each phase should leave the repository in a buildable, testable state.s
 
-## Phase 0: Architecture and Contract
+## Revised Phase 0
 
-**Goal:** Establish the domain model and boundaries before touching OS-specific networking code.
+### 0.1 Sidecar lifecycle
 
-### 0.1 Define network domain models
-
-Create:
+Use a **long-lived C++ network sidecar**.
 
 ```text
-cpp/include/system_analyzer/network/
-├── NetworkInterface.hpp
-├── NetworkSnapshot.hpp
-├── ApplicationNetworkUsage.hpp
-└── NetworkUsageProvider.hpp
+Tauri
+  │
+  │ spawn once
+  ▼
+C++ network sidecar
+  │
+  │ stdin: command
+  │ stdout: response/snapshot
+  │ stderr: diagnostics
+  ▼
+OS network provider
 ```
 
-Initial model:
+The sidecar should support a command protocol rather than being exclusively a one-shot CLI.
 
-```cpp
-struct NetworkInterface {
-    std::string id;
-    std::string name;
-    std::string displayName;
-    bool isUp;
-    bool isLoopback;
-    uint64_t bytesReceived;
-    uint64_t bytesSent;
-};
-
-struct ApplicationNetworkUsage {
-    std::string id;
-    std::string processName;
-    std::string executablePath;
-    uint32_t processId;
-    uint64_t bytesReceived;
-    uint64_t bytesSent;
-};
-
-struct NetworkSnapshot {
-    uint64_t timestamp;
-    std::vector<NetworkInterface> interfaces;
-    uint64_t totalBytesReceived;
-    uint64_t totalBytesSent;
-    std::vector<ApplicationNetworkUsage> applications;
-};
-```
-
-Keep the model platform-neutral.
-
-### 0.2 Define provider interfaces
+For example:
 
 ```text
-NetworkUsageProvider
-ApplicationNetworkUsageProvider
+Tauri → {"command":"network_snapshot"}
+C++   → {"type":"network_snapshot", ...}
+
+Tauri → {"command":"shutdown"}
+C++   → {"type":"shutdown_ack"}
 ```
 
-The key principle:
+The existing disk scanner remains one-shot:
 
-```text
-OS implementation
-      ↓
-normalized domain model
-      ↓
-stable JSON
+```bash
+system-analyzer /path
 ```
 
-### 0.3 Define the JSON contract
+Network monitoring becomes a long-lived mode:
 
-Establish the exact serialized structure before implementing providers.
-
-Add:
-
-```text
-network-schema-contract
+```bash
+system-analyzer --network
 ```
 
-The contract should validate:
+This is cleaner than spawning a C++ process every second and gives us a proper foundation for future monitoring functionality.
 
-* fields
-* types
-* required/optional properties
-* enum values
-* numeric ranges
-* timestamp semantics
-* interface identity
-* application identity
+### 0.2 Persistence schema
 
-### 0.4 Define sampling semantics
+Phase 1 creates **only interface-level persistence**:
 
-Lock these down:
-
-```text
-Sampling interval:       1 second
-Live buffer:             5-10 minutes
-Persistent bucket:       1 minute
-Initial retention:       30 days
+```sql
+network_rollups
 ```
 
-Define exactly what `bytesReceived` means:
+We deliberately do **not** create:
 
-**cumulative counter from the OS**, not "bytes during this sample."
-
-Throughput is then calculated from counter deltas.
-
-### Phase 0 gate
-
-We do not proceed until:
-
-```text
-✓ Domain models compile
-✓ Interfaces compile
-✓ JSON serialization works
-✓ Contract test passes
-✓ No OS-specific code in domain layer
+```sql
+app_usage_rollups
 ```
 
----
+until Phase 6 establishes the application identity model.
 
-# Phase 1: Persistence Infrastructure
-
-**Goal:** Establish durable telemetry storage before building the UI.
-
-This belongs in the Tauri/Rust layer.
-
-### 1.1 SQLite integration
-
-Evaluate and integrate the SQLite implementation we choose for Tauri 2.
-
-Create:
-
-```text
-apps/desktop/src-tauri/src/storage/
-├── database.rs
-├── migrations.rs
-├── network_repository.rs
-└── retention.rs
-```
-
-The storage layer should be generic enough to eventually support:
-
-```text
-Network history
-Disk scan history
-Future telemetry
-```
-
-### 1.2 Database schema
-
-Start with:
+That means the initial schema is stable:
 
 ```sql
 CREATE TABLE network_rollups (
@@ -160,736 +74,150 @@ CREATE TABLE network_rollups (
     bytes_sent INTEGER NOT NULL,
     PRIMARY KEY (ts, interface_id)
 );
-
-CREATE TABLE app_usage_rollups (
-    ts INTEGER NOT NULL,
-    app_id TEXT NOT NULL,
-    process_name TEXT NOT NULL,
-    executable_path TEXT,
-    bytes_received INTEGER NOT NULL,
-    bytes_sent INTEGER NOT NULL,
-    PRIMARY KEY (ts, app_id)
-);
 ```
 
-Indexes:
+Then Phase 6 introduces the application table through a proper migration once we have settled `app_id`.
 
-```sql
-CREATE INDEX idx_network_rollups_ts
-ON network_rollups(ts);
+### 0.3 Monitoring semantics
 
-CREATE INDEX idx_app_usage_rollups_ts
-ON app_usage_rollups(ts);
-```
-
-### 1.3 SQLite configuration
-
-Enable:
-
-```sql
-PRAGMA journal_mode=WAL;
-PRAGMA foreign_keys=ON;
-```
-
-Configure the database for:
-
-* single writer
-* transactional rollups
-* concurrent reads
-* predictable failure handling
-
-### 1.4 Repository API
-
-Rust should expose something conceptually like:
-
-```rust
-insert_network_rollups(...)
-insert_app_usage_rollups(...)
-get_network_history(...)
-get_app_usage_history(...)
-delete_expired_rollups(...)
-```
-
-The frontend should never know that SQLite exists.
-
-### 1.5 Retention
-
-Implement:
+For v1:
 
 ```text
-30 days
-    ↓
-automatic cleanup
+Application running
+        │
+        ▼
+Network monitoring active
+        │
+        ├── Network tab open
+        │       └── live visualization
+        │
+        └── Network tab closed
+                └── continue sampling
 ```
 
-Run retention cleanup:
+Closing the application stops monitoring.
 
-* on application startup
-* and/or periodically while monitoring
+Therefore:
 
-Make the retention period configurable internally so we can change it later without redesigning the schema.
+> "24-hour history" means the last 24 hours of **observed application runtime**, not guaranteed continuous system-wide history.
 
-### Phase 1 gate
+The UI should explicitly represent gaps rather than interpolating data and pretending monitoring occurred.
+
+Later:
 
 ```text
-✓ SQLite initializes
-✓ Migrations execute
-✓ WAL enabled
-✓ Insert/query works
-✓ Transaction rollback works
-✓ Retention works
-✓ Rust tests pass
-```
-
----
-
-# Phase 2: Linux Network Provider
-
-**Goal:** Implement the first real OS provider and establish the telemetry pipeline.
-
-Linux is our development platform, so it should be first.
-
-### 2.1 Interface discovery
-
-Implement:
-
-```text
-LinuxNetworkUsageProvider
-```
-
-Read interface counters from the appropriate Linux system interfaces.
-
-We need:
-
-```text
-interface name
-operational state
-RX bytes
-TX bytes
-loopback detection
-```
-
-Ignore irrelevant virtual interfaces initially where appropriate, but don't hard-code assumptions that would break Docker, VPNs, Wi-Fi, etc.
-
-### 2.2 Counter normalization
-
-Produce:
-
-```json
-{
-  "interfaces": [
-    {
-      "id": "eth0",
-      "name": "eth0",
-      "displayName": "Ethernet",
-      "isUp": true,
-      "isLoopback": false,
-      "bytesReceived": 123456,
-      "bytesSent": 45678
-    }
-  ]
-}
-```
-
-### 2.3 Throughput calculation
-
-Do **not** calculate throughput inside the OS provider.
-
-Provider:
-
-```text
-OS counters → cumulative bytes
-```
-
-Telemetry layer:
-
-```text
-counter(t)
-counter(t-1)
-      ↓
-delta
-      ↓
-bytes/sec
-```
-
-This makes the provider easier to test.
-
-### 2.4 Linux tests
-
-Test:
-
-* interface discovery
-* RX/TX counters
-* loopback filtering
-* missing interfaces
-* counter reset/wrap handling
-* malformed system data
-
-### Phase 2 gate
-
-We should be able to execute something like:
-
-```bash
-system-analyzer network
-```
-
-and receive valid network JSON.
-
----
-
-# Phase 3: Network Sampling Engine
-
-**Goal:** Build the real-time telemetry pipeline.
-
-At this point:
-
-```text
-C++
-  ↓
-NetworkSnapshot
-  ↓
-Tauri
-  ↓
-Sampler
-```
-
-### 3.1 One-second sampler
-
-Tauri owns the sampling cadence:
-
-```text
-1s
- ↓
-snapshot
- ↓
-calculate delta
- ↓
-live buffer
-```
-
-### 3.2 Ring buffer
-
-Maintain approximately:
-
-```text
-600 samples
-```
-
-for a 10-minute window.
-
-Each sample should contain:
-
-```text
-timestamp
-download bytes/sec
-upload bytes/sec
-interface breakdown
-application breakdown
-```
-
-### 3.3 Counter delta handling
-
-Handle:
-
-```text
-normal increment
-counter reset
-interface disappearance
-interface appearance
-system sleep/resume
-clock anomalies
-```
-
-Never produce a massive false throughput spike because the machine woke from sleep.
-
-### 3.4 Rollup
-
-Every 60 seconds:
-
-```text
-raw 1-second samples
+v2+
+Background service / tray monitoring
         ↓
-1-minute aggregate
+continuous telemetry
         ↓
-SQLite transaction
+true 24h system history
 ```
 
-Write network and application rollups together.
+### 0.4 First vertical slice
 
-### 3.5 Single writer
-
-Make one telemetry persistence task responsible for SQLite writes.
-
-```text
-Sampler
-   ↓
-Telemetry channel
-   ↓
-Persistence worker
-   ↓
-SQLite
-```
-
-This keeps database ownership explicit.
-
-### Phase 3 gate
-
-```text
-✓ 1-second sampling
-✓ Live ring buffer
-✓ Throughput calculation
-✓ 60-second rollup
-✓ SQLite persistence
-✓ Restart retains history
-```
-
----
-
-# Phase 4: Windows Network Provider
-
-**Goal:** Match Linux functionality with native Windows implementation.
-
-Implement:
-
-```text
-WindowsNetworkUsageProvider
-```
-
-Use Windows networking APIs for interface enumeration and cumulative counters.
-
-The output must conform to exactly the same domain model.
-
-```text
-Linux provider ───┐
-                  ├──→ NetworkSnapshot
-Windows provider ─┤
-                  │
-macOS provider ───┘
-```
-
-### Tests
-
-Validate:
-
-* interface discovery
-* Ethernet
-* Wi-Fi
-* loopback
-* disconnected interfaces
-* cumulative counters
-* provider failure behavior
-
-### Phase 4 gate
-
-The same network contract test must pass on Windows.
-
----
-
-# Phase 5: macOS Network Provider
-
-**Goal:** Complete the third platform implementation.
-
-Implement:
-
-```text
-MacOSNetworkUsageProvider
-```
-
-Follow the same contract.
-
-Test:
-
-```text
-Wi-Fi
-Ethernet
-Loopback
-VPN
-Interface changes
-Sleep/wake
-```
-
-### Phase 5 gate
-
-```text
-Linux     ✓
-Windows   ✓
-macOS     ✓
-```
-
-All three produce compatible network snapshots.
-
----
-
-# Phase 6: Application Network Usage
-
-This is the **hardest phase**.
-
-We should not pretend per-application accounting is equivalent across platforms.
-
-### 6.1 Define application identity
-
-Prefer:
-
-```text
-application ID
-executable path
-process name
-PID
-```
-
-PID is useful for the current session but must not be used as the historical identity.
-
-### 6.2 Linux
-
-Investigate and select the appropriate mechanism for mapping network traffic to processes.
-
-Potential mechanisms will need to account for:
-
-```text
-process
-socket
-connection
-traffic
-```
-
-The implementation must handle permissions and processes that disappear while being inspected.
-
-### 6.3 Windows
-
-Use the appropriate Windows networking/process facilities to associate traffic with applications.
-
-### 6.4 macOS
-
-Implement the corresponding native mechanism and account for Apple's security and permission model.
-
-### 6.5 Normalize
-
-Every OS produces:
-
-```cpp
-ApplicationNetworkUsage
-```
-
-The UI does not care how the OS obtained it.
-
-### 6.6 Aggregation
-
-For each application:
-
-```text
-Chrome
-  ↓
-RX: 8.2 GB
-TX: 1.1 GB
-Total: 9.3 GB
-```
-
-### Phase 6 gate
-
-At least:
-
-```text
-✓ Application discovery
-✓ RX/TX attribution
-✓ Stable application identity
-✓ Permission handling
-✓ Process disappearance handling
-✓ Cross-platform contract
-```
-
----
-
-# Phase 7: Network Analyzer UI
-
-Only after the telemetry backend is reliable.
-
-Create:
-
-```text
-apps/web/src/
-├── components/network/
-│   ├── NetworkOverview.vue
-│   ├── NetworkInterfaceCard.vue
-│   ├── NetworkThroughputChart.vue
-│   ├── NetworkHistory.vue
-│   ├── ApplicationNetworkTable.vue
-│   └── NetworkUsageSummary.vue
-│
-├── composables/
-│   └── useNetworkMonitor.ts
-│
-└── types/
-    └── network.ts
-```
-
-### Dashboard
-
-```text
-┌────────────────────────────────────────────┐
-│ Network                                    │
-├──────────────────┬─────────────────────────┤
-│ Download         │ Upload                  │
-│ 12.4 MB/s        │ 1.8 MB/s                │
-├──────────────────┴─────────────────────────┤
-│                                            │
-│       Live throughput                      │
-│                                            │
-├────────────────────────────────────────────┤
-│ Today's Usage                              │
-│ Download  42.7 GB    Upload  8.3 GB        │
-├────────────────────────────────────────────┤
-│ Applications                               │
-│                                            │
-│ Chrome       32.4 GB                       │
-│ Discord       4.2 GB                       │
-│ VS Code       2.1 GB                       │
-└────────────────────────────────────────────┘
-```
-
-### UI requirements
-
-* Live throughput
-* Current interface
-* Upload/download totals
-* 24-hour chart
-* Application ranking
-* Interface breakdown
-* Empty state
-* Permission warning
-* Monitoring state
-* Error state
-
----
-
-# Phase 8: Historical Views
-
-Now use the SQLite data properly.
-
-### 8.1 24-hour view
-
-Query:
-
-```text
-last 24 hours
-↓
-1-minute buckets
-↓
-chart
-```
-
-### 8.2 Application history
-
-Allow:
-
-```text
-Chrome
-  ↓
-Today
-  ↓
-Downloaded: 32.4 GB
-Uploaded:    4.8 GB
-```
-
-### 8.3 Interface history
-
-```text
-Wi-Fi
-Ethernet
-VPN
-```
-
-Each can be compared independently.
-
-### Phase 8 gate
-
-Close the application:
-
-```text
-monitor
- ↓
-close
- ↓
-reopen
- ↓
-history still exists
-```
-
-That is the key durability test.
-
----
-
-# Phase 9: Performance and Reliability
-
-Before calling Network Analyzer production-ready:
-
-### CPU
-
-Measure:
-
-```text
-C++ provider CPU
-Tauri sampler CPU
-SQLite CPU
-Vue rendering CPU
-```
-
-### Memory
-
-Measure:
-
-```text
-ring buffer
-SQLite connection
-Vue chart history
-application list
-```
-
-### Database
-
-Test:
-
-```text
-1 day
-7 days
-30 days
-```
-
-Verify retention and database size.
-
-### Stress scenarios
-
-```text
-No network
-Many interfaces
-VPN
-Docker
-Heavy download
-Heavy upload
-Many processes
-Process exits during sample
-Interface disappears
-Laptop sleep
-Network reconnect
-Application restart
-```
-
----
-
-# Phase 10: Integration and Testing
-
-Add the complete flow to the test matrix:
+After Phase 3 we immediately build:
 
 ```text
 Linux
-├── C++ tests
-├── provider tests
-├── contract tests
-├── Rust tests
-└── Vue tests
-
-Windows
-├── C++ tests
-├── provider tests
-├── contract tests
-├── Rust tests
-└── Vue tests
-
-macOS
-├── C++ tests
-├── provider tests
-├── contract tests
-├── Rust tests
-└── Vue tests
+  ↓
+Network provider
+  ↓
+Long-lived sidecar
+  ↓
+Tauri sampler
+  ↓
+Ring buffer
+  ↓
+Vue
 ```
 
-Add an end-to-end smoke test:
+Only:
 
-```text
-Start application
-      ↓
-Start network monitor
-      ↓
-Generate traffic
-      ↓
-Observe throughput
-      ↓
-Observe application attribution
-      ↓
-Wait for rollup
-      ↓
-Close application
-      ↓
-Reopen
-      ↓
-Verify historical data
-```
+* interface discovery
+* RX/TX
+* throughput
+* live chart
+* basic network summary
+
+No application attribution yet.
+
+This becomes our first **vertical integration gate**.
 
 ---
 
-# Phase 11: Documentation
-
-Update:
+# Revised high-level sequence
 
 ```text
-docs/DEVELOPMENT.md
-docs/CPP-CHEATSHEET.md
-docs/VUE-CHEATSHEET.md
-README.md
+PHASE 0
+Architecture decisions
+    │
+    ├── sidecar lifecycle
+    ├── IPC protocol
+    ├── monitoring semantics
+    ├── sampling model
+    └── persistence boundaries
+    │
+    ▼
+PHASE 1
+SQLite infrastructure
+    │
+    └── network_rollups only
+    │
+    ▼
+PHASE 2
+Linux network provider
+    │
+    ▼
+PHASE 3
+Sampling + ring buffer + rollups
+    │
+    ▼
+PHASE 3.5
+★ FIRST VERTICAL SLICE
+    │
+    ├── real C++ data
+    ├── real Tauri IPC
+    ├── real SQLite
+    └── real Vue chart
+    │
+    ▼
+PHASE 4
+Windows provider
+    │
+    ▼
+PHASE 5
+macOS provider
+    │
+    ▼
+PHASE 6
+Application attribution
+    │
+    ├── identity model
+    ├── app_usage_rollups migration
+    ├── Linux
+    ├── Windows
+    └── macOS
+    │
+    ▼
+PHASE 7
+Application UI
+    │
+    ▼
+PHASE 8
+Historical analysis
+    │
+    ▼
+PHASE 9
+Performance + reliability
+    │
+    ▼
+PHASE 10
+Cross-platform integration
+    │
+    ▼
+PHASE 11
+Documentation + release
 ```
 
-Document:
-
-* Network architecture
-* Provider interfaces
-* OS implementations
-* SQLite schema
-* Sampling strategy
-* Rollup strategy
-* Retention
-* Permissions
-* Known OS limitations
-* Build instructions
-* Troubleshooting
-
----
-
-# Final Network Analyzer Architecture
-
-When complete:
-
-```text
-                       SYSTEM ANALYZER
-                              │
-              ┌───────────────┴────────────────┐
-              │                                │
-        DISK ANALYZER                    NETWORK ANALYZER
-              │                                │
-              │                         NetworkSnapshot
-              │                                │
-              │                    ApplicationNetworkUsage
-              │                                │
-              │                                ▼
-              │                             Tauri
-              │                                │
-              │                    ┌───────────┴───────────┐
-              │                    │                       │
-              │               Ring Buffer              SQLite
-              │                    │                       │
-              │                    ▼                       ▼
-              │                Live UI              Historical UI
-              │
-              ▼
-         C++ Engine
-              │
-      Platform Providers
-              │
-       ┌──────┼──────┐
-       ▼      ▼      ▼
-     Linux  Windows  macOS
-```
-
-## The execution rule
-
-We follow the phases **in order**. At the end of every phase, we run its gate before moving forward. If implementation reveals that a decision needs changing, we modify the plan explicitly rather than silently drifting from it.
-
-The first actual implementation task is therefore **Phase 0.1: define the Network domain models and provider interfaces**. We should inspect the current C++ architecture first so the new module follows the conventions already established by Disk Analyzer, then implement the interfaces and contract tests before writing any Linux networking code.
+The next step is therefore **not implementation yet**. We should do **Phase 0.1 through 0.4**, inspect the existing Disk Analyzer sidecar architecture, and write the concrete Network Analyzer architecture/contract into `docs/DEVELOPMENT.md` before creating the first files.

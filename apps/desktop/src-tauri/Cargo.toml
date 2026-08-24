@@ -1,7 +1,7 @@
 [package]
 name = "app"
 version = "0.1.0"
-description = "A Tauri App"
+description = "System tray application for managing the app"
 authors = ["you"]
 license = ""
 repository = ""
@@ -25,3 +25,4 @@ tauri = { version = "2.11.3", features = [] }
 tauri-plugin-log = "2"
 tauri-plugin-shell = "2.3.5"
 tauri-plugin-dialog = "2.7.2"
+rusqlite = { version = "0.32", features = ["bundled"] }
