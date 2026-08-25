@@ -68,6 +68,7 @@ else()
     list(APPEND PLATFORM_SOURCES
         cpp/src/platform/linux/LinuxVolumeProvider.cpp
         cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
+        cpp/src/platform/linux/LinuxNetworkUsageProvider.cpp
     )
 endif()
 

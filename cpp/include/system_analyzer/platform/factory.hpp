@@ -5,6 +5,7 @@
 #include "system_analyzer/core/IDiskUsageProvider.hpp"
 #include "system_analyzer/core/IFileScanner.hpp"
 #include "system_analyzer/core/IVolumeProvider.hpp"
+#include "system_analyzer/platform/network_usage_provider.hpp"
 
 namespace system_analyzer::platform
 {
@@ -17,5 +18,7 @@ namespace system_analyzer::platform
     [[nodiscard]] std::unique_ptr<core::IDiskUsageProvider> createDiskUsageProvider();
 
     [[nodiscard]] std::unique_ptr<core::IVolumeProvider> createVolumeProvider();
+
+    [[nodiscard]] std::unique_ptr<INetworkUsageProvider> createNetworkUsageProvider();
 
 } // namespace system_analyzer::platform
