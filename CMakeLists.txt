@@ -69,6 +69,7 @@ else()
         cpp/src/platform/linux/LinuxVolumeProvider.cpp
         cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
         cpp/src/platform/linux/LinuxNetworkUsageProvider.cpp
+        cpp/src/platform/linux/LinuxNetworkParser.cpp
     )
 endif()
 
@@ -200,6 +201,21 @@ if(NOT WIN32)
     add_test(
         NAME linux-volume-provider
         COMMAND linux-volume-provider-test
+    )
+
+    add_executable(linux-network-parser-test
+        cpp/tests/platform/LinuxNetworkParserTest.cpp
+        cpp/src/platform/linux/LinuxNetworkParser.cpp
+    )
+
+    target_include_directories(linux-network-parser-test
+        PRIVATE
+            cpp/include
+    )
+
+    add_test(
+        NAME linux-network-parser
+        COMMAND linux-network-parser-test
     )
 endif()
 
