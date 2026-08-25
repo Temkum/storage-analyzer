@@ -3,7 +3,7 @@ mod storage;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
-use tauri::{Emitter, State};
+use tauri::{Emitter, Manager, State};
 use tauri_plugin_shell::process::{CommandChild, CommandEvent};
 use tauri_plugin_shell::ShellExt;
 
@@ -15,6 +15,10 @@ struct CurrentScan {
     /// Set when the user asks to cancel the in-flight scan.
     cancel_requested: Arc<AtomicBool>,
 }
+
+/// Tauri-managed database state. Owns the single SQLite connection so the
+/// application has exactly one writer, shared behind a mutex.
+struct DatabaseState(Mutex<storage::Database>);
 
 fn sidecar_command(
     app: &tauri::AppHandle,
@@ -153,6 +157,35 @@ fn reveal_in_file_manager(path: String) -> Result<(), String> {
 pub fn run() {
     tauri::Builder::default()
         .manage(CurrentScan::default())
+        .setup(|app| {
+            let app_data_dir = app.path().app_data_dir()?;
+
+            // TEMP diagnostic: trace setup hook execution.
+            eprintln!("[setup] app_data_dir: {app_data_dir:?}");
+
+            let mut database = storage::Database::initialize(&app_data_dir)
+                .map_err(|error| format!("failed to initialize database: {error}"))?;
+
+            eprintln!("[setup] database initialized");
+
+            let retention = storage::RetentionManager::default();
+
+            {
+                let repository = storage::NetworkRollupRepository::new(database.connection());
+
+                let deleted = retention
+                    .cleanup(&repository)
+                    .map_err(|error| format!("failed to clean network history: {error}"))?;
+
+                eprintln!("[setup] retention cleanup deleted {deleted} rollups");
+            }
+
+            app.manage(DatabaseState(Mutex::new(database)));
+
+            eprintln!("[setup] database state managed");
+
+            Ok(())
+        })
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![

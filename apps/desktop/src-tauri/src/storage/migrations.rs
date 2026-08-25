@@ -18,7 +18,7 @@ pub fn run(connection: &mut Connection) -> rusqlite::Result<()> {
         |row| row.get(0),
     )?;
 
-    if current_version < 1 {
+    if current_version < CURRENT_SCHEMA_VERSION {
         let transaction = connection.transaction()?;
 
         transaction.execute_batch(
@@ -44,7 +44,7 @@ pub fn run(connection: &mut Connection) -> rusqlite::Result<()> {
         transaction.execute(
             "INSERT INTO schema_migrations (version, applied_at)
              VALUES (?1, ?2)",
-            rusqlite::params![1, applied_at],
+            rusqlite::params![CURRENT_SCHEMA_VERSION, applied_at],
         )?;
 
         transaction.commit()?;
