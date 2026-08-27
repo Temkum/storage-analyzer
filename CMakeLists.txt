@@ -80,6 +80,7 @@ set(ENGINE_SOURCES
     cpp/src/core/SystemInfo.cpp
     cpp/src/core/DirectorySizeAggregator.cpp
     cpp/src/serialization/ScanResultSerializer.cpp
+    cpp/src/serialization/NetworkSnapshotSerializer.cpp
     ${PLATFORM_SOURCES}
 )
 
@@ -217,6 +218,22 @@ if(NOT WIN32)
         NAME linux-network-parser
         COMMAND linux-network-parser-test
     )
+
+    add_executable(linux-network-usage-test
+        cpp/tests/platform/LinuxNetworkUsageProviderTest.cpp
+        cpp/src/platform/linux/LinuxNetworkUsageProvider.cpp
+        cpp/src/platform/linux/LinuxNetworkParser.cpp
+    )
+
+    target_include_directories(linux-network-usage-test
+        PRIVATE
+            cpp/include
+    )
+
+    add_test(
+        NAME linux-network-usage
+        COMMAND linux-network-usage-test
+    )
 endif()
 
 # Cross-platform contract test
@@ -239,4 +256,27 @@ target_include_directories(scan-schema-contract-test
 add_test(
     NAME scan-schema-contract
     COMMAND scan-schema-contract-test
+)
+
+# Cross-platform network schema contract test
+#
+# Same gate as scan-schema-contract, but for the network domain: builds the
+# provider through createNetworkUsageProvider(), takes a real snapshot and
+# asserts the serialized NetworkSnapshot keeps a stable JSON schema so every
+# future provider stays wire-compatible with the Tauri layer and Vue UI.
+
+add_executable(network-schema-contract-test
+    cpp/tests/contract/NetworkSchemaContractTest.cpp
+    ${ENGINE_SOURCES}
+)
+
+target_include_directories(network-schema-contract-test
+    PRIVATE
+        cpp/include
+        cpp/third_party
+)
+
+add_test(
+    NAME network-schema-contract
+    COMMAND network-schema-contract-test
 )
