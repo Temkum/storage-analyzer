@@ -1,5 +1,10 @@
 mod platform;
 mod storage;
+
+// Network monitoring: Rust-side wire types and the long-lived sidecar
+// manager. Public so the integration test can exercise the full
+// spawn → snapshot → snapshot → shutdown → exit round-trip.
+pub mod network;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 

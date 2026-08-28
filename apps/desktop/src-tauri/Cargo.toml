@@ -26,6 +26,12 @@ tauri-plugin-log = "2"
 tauri-plugin-shell = "2.3.5"
 tauri-plugin-dialog = "2.7.2"
 rusqlite = { version = "0.32", features = ["bundled"] }
+thiserror = "2"
 
 [dev-dependencies]
 tempfile = "3"
+# #[tokio::test] runtime for the network sidecar integration test.
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+# tauri::test mock runtime so the integration test resolves and spawns the
+# sidecar exactly like the production app does (tauri-plugin-shell).
+tauri = { version = "2.11.3", features = ["test"] }
