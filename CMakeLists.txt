@@ -81,6 +81,7 @@ set(ENGINE_SOURCES
     cpp/src/core/DirectorySizeAggregator.cpp
     cpp/src/serialization/ScanResultSerializer.cpp
     cpp/src/serialization/NetworkSnapshotSerializer.cpp
+    cpp/src/network/NetworkCommandHandler.cpp
     ${PLATFORM_SOURCES}
 )
 
@@ -280,3 +281,43 @@ add_test(
     NAME network-schema-contract
     COMMAND network-schema-contract-test
 )
+
+# Network command handler tests
+#
+# Unit-level NDJSON protocol coverage (fake provider, no process spawn)
+# plus one integration test that forks/execs the real sidecar binary and
+# proves it stays alive across repeated requests and exits on shutdown.
+
+add_executable(network-command-handler-test
+    cpp/tests/network/NetworkCommandHandlerTest.cpp
+    cpp/src/network/NetworkCommandHandler.cpp
+    cpp/src/serialization/NetworkSnapshotSerializer.cpp
+)
+
+target_include_directories(network-command-handler-test
+    PRIVATE
+        cpp/include
+        cpp/third_party
+)
+
+add_test(
+    NAME network-command-handler
+    COMMAND network-command-handler-test
+)
+
+if(NOT WIN32)
+    add_executable(network-sidecar-integration-test
+        cpp/tests/network/NetworkSidecarIntegrationTest.cpp
+    )
+
+    target_include_directories(network-sidecar-integration-test
+        PRIVATE
+            cpp/include
+            cpp/third_party
+    )
+
+    add_test(
+        NAME network-sidecar
+        COMMAND network-sidecar-integration-test $<TARGET_FILE:system-analyzer>
+    )
+endif()
