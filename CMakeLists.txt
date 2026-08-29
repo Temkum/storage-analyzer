@@ -70,6 +70,8 @@ else()
         cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
         cpp/src/platform/linux/LinuxNetworkUsageProvider.cpp
         cpp/src/platform/linux/LinuxNetworkParser.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkProvider.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkParser.cpp
     )
 endif()
 
@@ -81,6 +83,7 @@ set(ENGINE_SOURCES
     cpp/src/core/DirectorySizeAggregator.cpp
     cpp/src/serialization/ScanResultSerializer.cpp
     cpp/src/serialization/NetworkSnapshotSerializer.cpp
+    cpp/src/serialization/ApplicationNetworkSnapshotSerializer.cpp
     cpp/src/network/NetworkCommandHandler.cpp
     ${PLATFORM_SOURCES}
 )
@@ -234,6 +237,45 @@ if(NOT WIN32)
     add_test(
         NAME linux-network-usage
         COMMAND linux-network-usage-test
+    )
+
+    # Deterministic parser/aggregation tests for application attribution.
+    # These run against fixture /proc content (no real processes) so the
+    # attribution pipeline is proven before relying on the live machine.
+    add_executable(linux-application-network-provider-test
+        cpp/tests/platform/LinuxApplicationNetworkProviderTest.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkProvider.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkParser.cpp
+    )
+
+    target_include_directories(linux-application-network-provider-test
+        PRIVATE
+            cpp/include
+    )
+
+    add_test(
+        NAME linux-application-network-provider
+        COMMAND linux-application-network-provider-test
+    )
+
+    # Real-machine integration test: builds the provider through the factory
+    # and asserts structural correctness (non-empty identity, non-negative
+    # counters) without expecting specific applications like Firefox.
+    add_executable(linux-application-schema-contract-test
+        cpp/tests/contract/ApplicationNetworkSchemaContractTest.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkProvider.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkParser.cpp
+        cpp/src/serialization/ApplicationNetworkSnapshotSerializer.cpp
+    )
+
+    target_include_directories(linux-application-schema-contract-test
+        PRIVATE
+            cpp/include
+    )
+
+    add_test(
+        NAME linux-application-schema-contract
+        COMMAND linux-application-schema-contract-test
     )
 endif()
 

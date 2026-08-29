@@ -602,6 +602,20 @@ bytes_sent[t1]) / (t2 - t1)`. Deltas would lose this ability.
 The plan is explicit: introduce `app_usage_rollups` only after Phase 6 establishes the
 application identity model. This keeps the initial schema stable and unchanging.
 
+> **Phase 6 status (6.5 green):** the Linux attribution mechanism has been investigated,
+> decided, and **implemented and tested**. `docs/phase6-linux-attribution.md` documents the
+> mechanism survey, kernel evidence, and identity model. The implementation is live:
+> `IApplicationNetworkProvider` (platform-neutral), `LinuxApplicationNetworkProvider`
+> (`/proc/net/tcp` → inode → PID → canonical exe, with per-socket cumulative byte counters
+> read via the SOCK_DIAG/`INET_DIAG_INFO` netlink dump — the same mechanism `ss -eit`
+> uses; `TCPDIAG_GETSOCK` is rejected with EINVAL so `SOCK_DIAG_BY_FAMILY` + a
+> until-`NLMSG_DONE` receive loop are used). It reports cumulative counters and calls
+> `createApplicationNetworkProvider()` (Linux returns the implementation; Windows/macOS
+> return nullptr, Linux-first). The `app_usage_rollups` migration (Phase 6.6) is **still
+> deferred** until Step 6.5 gates are proven — same-uid TCP only, with graceful skip for
+> permission/visibility failures; UDP and foreign-uid are surfaced as gaps, not
+> approximations.
+
 #### Write semantics
 
 Each `network_snapshot` is processed as a single transaction:
