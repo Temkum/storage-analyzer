@@ -4,5 +4,5 @@ pub mod network_rollup_repository;
 pub mod retention;
 
 pub use database::Database;
-pub use network_rollup_repository::NetworkRollupRepository;
+pub use network_rollup_repository::{NetworkRollup, NetworkRollupRepository};
 pub use retention::RetentionManager;
