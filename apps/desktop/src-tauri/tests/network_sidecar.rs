@@ -96,6 +96,17 @@ async fn network_sidecar_serves_repeated_snapshots_and_exits_on_shutdown() {
         assert!(!interface.name.is_empty());
     }
 
+    // Combined snapshot: the applications array must always be present.
+    // It may legitimately be empty on this machine — no attributable
+    // same-UID TCP traffic does NOT mean the network provider failed.
+    for application in &first.applications {
+        assert!(!application.app_id.is_empty());
+        assert!(
+            application.executable_path.is_some(),
+            "executable_path preserves the resolved executable"
+        );
+    }
+
     // Request → snapshot served by the SAME process (proves long-lived).
     let second = sidecar.snapshot().await.expect("second snapshot");
     assert!(

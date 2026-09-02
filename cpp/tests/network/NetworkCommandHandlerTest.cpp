@@ -4,11 +4,16 @@
 
 #include <nlohmann/json.hpp>
 
+#include "system_analyzer/domain/ApplicationNetworkUsage.hpp"
 #include "system_analyzer/network/NetworkCommandHandler.hpp"
+#include "system_analyzer/platform/application_network_provider.hpp"
 
 namespace
 {
 
+    using system_analyzer::ApplicationNetworkSnapshot;
+    using system_analyzer::ApplicationNetworkUsage;
+    using system_analyzer::IApplicationNetworkProvider;
     using system_analyzer::INetworkUsageProvider;
     using system_analyzer::NetworkCommandHandler;
     using system_analyzer::NetworkInterface;
@@ -22,6 +27,37 @@ namespace
             return NetworkSnapshot{
                 1700000000,
                 {NetworkInterface{"fake0", "fake0", 10, 20, true}}};
+        }
+    };
+
+    class FakeApplicationNetworkProvider final : public IApplicationNetworkProvider
+    {
+    public:
+        ApplicationNetworkSnapshot getSnapshot() override
+        {
+            return ApplicationNetworkSnapshot{
+                1700000000,
+                {ApplicationNetworkUsage{
+                    "/usr/bin/fake-app", "fake-app", "/usr/bin/fake-app",
+                    1000, 500}}};
+        }
+    };
+
+    class EmptyApplicationNetworkProvider final : public IApplicationNetworkProvider
+    {
+    public:
+        ApplicationNetworkSnapshot getSnapshot() override
+        {
+            return ApplicationNetworkSnapshot{1700000000, {}};
+        }
+    };
+
+    class FailingApplicationNetworkProvider final : public IApplicationNetworkProvider
+    {
+    public:
+        ApplicationNetworkSnapshot getSnapshot() override
+        {
+            throw std::runtime_error("app provider exploded");
         }
     };
 
@@ -46,10 +82,11 @@ namespace
 int main()
 {
     FakeNetworkUsageProvider fakeProvider;
+    FakeApplicationNetworkProvider fakeAppProvider;
 
-    NetworkCommandHandler handler(fakeProvider);
+    NetworkCommandHandler handler(fakeProvider, fakeAppProvider);
 
-    // network_snapshot returns a snapshot with the full contract shape.
+    // Combined network_snapshot returns interfaces AND applications.
     {
         const auto response = handleAndParse(
             handler, R"({"command":"network_snapshot"})");
@@ -67,6 +104,17 @@ int main()
         assert(interface["bytesReceived"] == 10);
         assert(interface["bytesSent"] == 20);
         assert(interface["isUp"] == true);
+
+        assert(response.contains("applications"));
+        assert(response["applications"].is_array());
+        assert(response["applications"].size() == 1);
+
+        const auto &app = response["applications"][0];
+        assert(app["appId"] == "/usr/bin/fake-app");
+        assert(app["processName"] == "fake-app");
+        assert(app["executablePath"] == "/usr/bin/fake-app");
+        assert(app["bytesReceived"] == 1000);
+        assert(app["bytesSent"] == 500);
     }
 
     // Unknown commands become protocol errors, not crashes.
@@ -104,16 +152,46 @@ int main()
         assert(response["type"] == "shutdown_ack");
     }
 
-    // A failing provider surfaces as a protocol error instead of an escape.
+    // A failing interface provider surfaces as a protocol error.
     {
         FailingNetworkUsageProvider failingProvider;
+        FakeApplicationNetworkProvider fakeApp;
 
-        NetworkCommandHandler failingHandler(failingProvider);
+        NetworkCommandHandler failingHandler(failingProvider, fakeApp);
 
         const auto response = handleAndParse(
             failingHandler, R"({"command":"network_snapshot"})");
 
         assert(response["type"] == "error");
+    }
+
+    // A failing application provider surfaces as a protocol error.
+    {
+        FakeNetworkUsageProvider fakeNet;
+        FailingApplicationNetworkProvider failingAppProvider;
+
+        NetworkCommandHandler failingHandler(fakeNet, failingAppProvider);
+
+        const auto response = handleAndParse(
+            failingHandler, R"({"command":"network_snapshot"})");
+
+        assert(response["type"] == "error");
+    }
+
+    // An empty applications array is a valid combined snapshot (no
+    // attributable TCP processes does NOT mean network provider failed).
+    {
+        FakeNetworkUsageProvider fakeNet;
+        EmptyApplicationNetworkProvider emptyApp;
+
+        NetworkCommandHandler handler(fakeNet, emptyApp);
+
+        const auto response = handleAndParse(
+            handler, R"({"command":"network_snapshot"})");
+
+        assert(response["type"] == "network_snapshot");
+        assert(response["applications"].is_array());
+        assert(response["applications"].empty());
     }
 
     return 0;

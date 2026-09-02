@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "system_analyzer/serialization/ApplicationNetworkSnapshotSerializer.hpp"
 #include "system_analyzer/serialization/NetworkSnapshotSerializer.hpp"
 
 namespace system_analyzer
@@ -22,15 +23,16 @@ namespace system_analyzer
     } // namespace
 
     NetworkCommandHandler::NetworkCommandHandler(
-        INetworkUsageProvider &provider)
-        : provider(provider)
+        INetworkUsageProvider &provider,
+        IApplicationNetworkProvider &appProvider)
+        : provider(provider), appProvider(appProvider)
     {
     }
 
     std::string NetworkCommandHandler::handle(
         const std::string &request)
     {
-        // Responsibility is strictly: parse command -> call provider ->
+        // Responsibility is strictly: parse command -> call providers ->
         // serialize response. No sampling, deltas, SQLite or rate logic.
         nlohmann::json parsed;
 
@@ -56,13 +58,20 @@ namespace system_analyzer
         {
             try
             {
-                // The snapshot body comes from the contract serializer so the
-                // NDJSON protocol and the network schema contract cannot
-                // drift apart; only the envelope "type" is protocol-specific.
+                // The snapshot body comes from the contract serializers so
+                // the NDJSON protocol and the schema contracts cannot drift
+                // apart. A single request yields BOTH telemetry streams —
+                // interfaces and applications — from one coherent observation
+                // of the system, avoiding two IPC round-trips per second.
                 nlohmann::json response = nlohmann::json::parse(
                     serialization::NetworkSnapshotSerializer::toJson(
                         provider.getSnapshot()));
 
+                nlohmann::json appJson = nlohmann::json::parse(
+                    serialization::ApplicationNetworkSnapshotSerializer::toJson(
+                        appProvider.getSnapshot()));
+
+                response["applications"] = appJson["applications"];
                 response["type"] = "network_snapshot";
 
                 return response.dump();

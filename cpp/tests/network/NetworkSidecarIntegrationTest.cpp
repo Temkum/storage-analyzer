@@ -118,12 +118,19 @@ int main(
             const nlohmann::json response =
                 nlohmann::json::parse(readResponse());
 
-            require(response["type"] == "network_snapshot",
+                        require(response["type"] == "network_snapshot",
                     "expected a network_snapshot response");
             require(response.contains("timestamp"),
                     "snapshot response missing timestamp");
             require(response["interfaces"].is_array(),
                     "snapshot response missing interfaces");
+            // Combined snapshot: applications array must always be present,
+            // even when empty (no attributable TCP processes is NOT an
+            // error — it simply means zero attributable traffic).
+            require(response.contains("applications"),
+                    "snapshot response missing applications");
+            require(response["applications"].is_array(),
+                    "applications must be an array");
         }
 
         sendRequest(stdinPipe[1], R"({"command":"shutdown"})");

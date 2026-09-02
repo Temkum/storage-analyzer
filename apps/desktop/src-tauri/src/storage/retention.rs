@@ -1,6 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use super::NetworkRollupRepository;
+use super::{AppUsageRollupRepository, NetworkRollupRepository};
 
 pub const DEFAULT_RETENTION_DAYS: i64 = 30;
 
@@ -30,6 +30,15 @@ impl RetentionManager {
     pub fn cleanup(&self, repository: &NetworkRollupRepository<'_>) -> rusqlite::Result<usize> {
         repository.delete_before(self.cutoff_timestamp())
     }
+
+    /// Cleans `app_usage_rollups` using the same retention cutoff as
+    /// [`Self::cleanup`]. Both tables share one policy; no separate window.
+    pub fn cleanup_app(
+        &self,
+        repository: &AppUsageRollupRepository<'_>,
+    ) -> rusqlite::Result<usize> {
+        repository.delete_before(self.cutoff_timestamp())
+    }
 }
 
 impl Default for RetentionManager {
@@ -41,7 +50,7 @@ impl Default for RetentionManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::{Database, NetworkRollup};
+    use crate::storage::{AppUsageRollup, AppUsageRollupRepository, Database, NetworkRollup};
 
     fn now_seconds() -> i64 {
         SystemTime::now()
@@ -95,6 +104,41 @@ mod tests {
             .unwrap();
 
         let deleted = RetentionManager::new(30).cleanup(&repository).unwrap();
+
+        assert_eq!(deleted, 1);
+        assert_eq!(repository.count().unwrap(), 1);
+    }
+
+    #[test]
+    fn cleanup_app_deletes_only_expired_rollups() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let mut database = Database::open(temp_dir.path()).unwrap();
+        let mut repository = AppUsageRollupRepository::new(database.connection());
+
+        let now = now_seconds();
+
+        repository
+            .insert_batch(&[
+                AppUsageRollup {
+                    ts: now - 31 * 24 * 60 * 60,
+                    app_id: "/usr/bin/app1".into(),
+                    process_name: "app1".into(),
+                    executable_path: Some("/usr/bin/app1".into()),
+                    bytes_received: 1000,
+                    bytes_sent: 500,
+                },
+                AppUsageRollup {
+                    ts: now - 60,
+                    app_id: "/usr/bin/app1".into(),
+                    process_name: "app1".into(),
+                    executable_path: Some("/usr/bin/app1".into()),
+                    bytes_received: 2000,
+                    bytes_sent: 900,
+                },
+            ])
+            .unwrap();
+
+        let deleted = RetentionManager::new(30).cleanup_app(&repository).unwrap();
 
         assert_eq!(deleted, 1);
         assert_eq!(repository.count().unwrap(), 1);

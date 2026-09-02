@@ -93,8 +93,9 @@ namespace system_analyzer::app
     {
         // Platform selection is resolved by the factory; no OS branching here.
         auto provider = platform::createNetworkUsageProvider();
+        auto appProvider = platform::createApplicationNetworkProvider();
 
-        NetworkCommandHandler handler(*provider);
+        NetworkCommandHandler handler(*provider, *appProvider);
 
         std::string line;
 

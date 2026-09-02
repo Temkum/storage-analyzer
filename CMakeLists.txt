@@ -334,6 +334,7 @@ add_executable(network-command-handler-test
     cpp/tests/network/NetworkCommandHandlerTest.cpp
     cpp/src/network/NetworkCommandHandler.cpp
     cpp/src/serialization/NetworkSnapshotSerializer.cpp
+    cpp/src/serialization/ApplicationNetworkSnapshotSerializer.cpp
 )
 
 target_include_directories(network-command-handler-test

@@ -174,15 +174,26 @@ pub fn run() {
             eprintln!("[setup] database initialized");
 
             let retention = storage::RetentionManager::default();
+            let cutoff = retention.cutoff_timestamp();
 
             {
                 let repository = storage::NetworkRollupRepository::new(database.connection());
 
-                let deleted = retention
-                    .cleanup(&repository)
+                let deleted = repository
+                    .delete_before(cutoff)
                     .map_err(|error| format!("failed to clean network history: {error}"))?;
 
-                eprintln!("[setup] retention cleanup deleted {deleted} rollups");
+                eprintln!("[setup] retention cleanup deleted {deleted} network rollups");
+            }
+
+            {
+                let repository = storage::AppUsageRollupRepository::new(database.connection());
+
+                let deleted = repository
+                    .delete_before(cutoff)
+                    .map_err(|error| format!("failed to clean application history: {error}"))?;
+
+                eprintln!("[setup] retention cleanup deleted {deleted} application rollups");
             }
 
             app.manage(DatabaseState(Mutex::new(database)));
