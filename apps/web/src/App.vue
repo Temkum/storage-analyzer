@@ -13,6 +13,7 @@ import ScanSummary from '@/components/dashboard/ScanSummary.vue'
 import ScanWarnings from '@/components/dashboard/ScanWarnings.vue'
 import Treemap from '@/components/dashboard/Treemap.vue'
 import Volumes from '@/components/dashboard/Volumes.vue'
+import NetworkAnalyzer from '@/components/network/NetworkAnalyzer.vue'
 import { useScanner } from '@/composables/useScanner'
 
 const path = ref('/tmp/system-analyzer-test')
@@ -148,10 +149,42 @@ function handleBreadcrumbNavigate(targetPath: string) {
         storage breakdown.
       </p>
     </section>
+
+    <section id="network" class="network-section" aria-label="Network Analyzer">
+      <div class="network-section__header">
+        <p class="network-section__eyebrow">NETWORK ANALYSIS</p>
+
+        <h2>Live network telemetry &amp; application attribution</h2>
+      </div>
+
+      <NetworkAnalyzer />
+    </section>
   </DashboardLayout>
 </template>
 
 <style scoped>
+.network-section {
+  display: grid;
+  gap: 16px;
+  scroll-margin-top: 24px;
+}
+
+.network-section__header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.network-section__eyebrow {
+  margin: 0 0 6px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
 .hero {
   display: flex;
   align-items: flex-end;

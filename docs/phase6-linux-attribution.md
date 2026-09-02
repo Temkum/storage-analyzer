@@ -215,20 +215,65 @@ CREATE INDEX idx_app_usage_rollups_ts ON app_usage_rollups(ts);
 
 - [x] Application identity · [x] Linux process enumeration · [x] Executable identification
 - [x] Network ownership/accounting · [x] Permission failures tolerated · [x] No PID as identity
-- [ ] Multiple applications · [ ] Process restart handling · [ ] Short-lived process handling
-- [ ] Rust application telemetry model (contract defined §5; not coded) · [ ] Rollup schema (deferred §6)
-- [ ] Deterministic tests · [ ] Real-machine integration test (PoC is the kernel-truth baseline)
+- [x] Multiple applications · [x] Process restart handling · [x] Short-lived process handling
+- [x] Rust application telemetry model (§5; coded — `ApplicationNetworkUsage`,
+      combined `NetworkSnapshot`) · [x] Rollup schema (§6 — migration #2, schema v2)
+- [x] Deterministic tests · [x] Real-machine integration test (PoC is the kernel-truth baseline)
+
+### Phase 6.6 — Application rollups + Rust telemetry integration (COMPLETE)
+
+Implemented across C++ and Rust:
+
+- **Migration #2** (`storage/migrations.rs`, schema v2): `app_usage_rollups`
+  with `PRIMARY KEY (ts, app_id)` and `idx_app_usage_rollups_ts` /
+  `idx_app_usage_rollups_app` indexes. Idempotent via the existing
+  `schema_migrations` mechanism (per-version blocks, no second framework).
+- **`AppUsageRollupRepository`** (`storage/app_usage_rollup_repository.rs`):
+  `insert_batch` (ON CONFLICT DO UPDATE on `(ts, app_id)`), `find_since`,
+  `delete_before`, `count` — same transaction + WAL behavior as
+  `network_rollups`.
+- **Combined snapshot protocol**: `NetworkCommandHandler` now takes
+  `IApplicationNetworkProvider` alongside `INetworkUsageProvider` and answers
+  a single `network_snapshot` request with `{type, timestamp, interfaces[],
+  applications[]}` — one coherent observation per tick, no second IPC
+  request per second. `Application::runNetworkMode()` creates both providers.
+- **Rust domain model**: `ApplicationNetworkUsage` + `NetworkSnapshot.
+  applications` (may be empty — "no attributable TCP processes" is not a
+  provider failure).
+- **`NetworkSampler`** (no second sampler): generic `SampleRingBuffer<T>`
+  with `NetworkRingBuffer` / `ApplicationRingBuffer` aliases. Application
+  ring buffer bounded at `RING_BUFFER_CAPACITY × MAX_TRACKED_APPLICATIONS`
+  (600 × 100). Application counters follow the interface reset semantics:
+  new app → silent baseline; disappeared app → no sample; counter reset →
+  skip. One tick = one coherent telemetry point across both streams.
+- **Atomic rollup**: at each 60s boundary both accumulators drain into one
+  `RollupBatch` and `Database::persist_rollups()` commits interface +
+  application rows in a single SQLite transaction — minute N is either
+  fully written or fully absent.
+- **Retention**: `RetentionManager::cleanup_app()` uses the same cutoff;
+  the Tauri setup hook cleans both tables with one computed cutoff.
+
+Test evidence at the Phase 6.6 gate:
+
+- Repository: migration #2 executes, migrations idempotent at v2, app
+  rollups insert/read, duplicate `(ts, app_id)` updates, `find_since`,
+  `delete_before`, atomic `persist_rollups`, app retention cleanup.
+- Sampler: app baseline, app delta, multi-app independence, new process
+  baseline, disappeared process, counter reset ignored, bounded app ring
+  buffer, 60s app rollup, atomic interface+app commit, empty-applications
+  validity — plus all pre-existing interface tests preserved.
+- Integration: real sidecar spawn → combined snapshots → applications
+  parsed → shutdown; does not require any specific application. Live smoke
+  on the dev machine: 6 interfaces, 6 attributable applications.
+- Final counts: C++ ctest 14/14, Rust 38 unit + 1 integration, all passing.
 
 ## 8. Next action
 
-1. Create `INetworkApplicationProvider` C++ interface + `ApplicationNetworkUsage` /
-   `ApplicationSnapshot` domain types (mirroring `NetworkSnapshot`).
-2. Implement `LinuxApplicationNetworkProvider` per §3 — same-uid TCP only, graceful skip
-   on every failure, UDP gap surfaced as `app_id = "__unattributed_udp__"`.
-3. Add Rust `ApplicationNetworkUsage` type + delta/rollup mirroring `telemetry.rs`.
-4. Deterministic tests: counter-exact attribution, fake-inode skip, symlink→canonical-exe,
-   UDP "no counter" path.
-5. **Then** migration #2 (`app_usage_rollups`) + bump schema version to 2.
+**Phase 7 — Linux vertical slice**: expose the real telemetry through Tauri
+commands and build the first `NetworkOverview` + live throughput UI. The
+sampler, ring buffers, combined snapshot and dual rollup persistence are in
+place; Phase 7 wires them to the Tauri runtime (scheduler, commands, events)
+before Windows/macOS attribution begins.
 
 Privileged eBPF validation: `docs/research/poc_bpf_validate.sh` (run
 `sudo bash docs/research/poc_bpf_validate.sh`) — out of scope for v1.

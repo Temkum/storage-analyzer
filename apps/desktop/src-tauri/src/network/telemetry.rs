@@ -124,6 +124,16 @@ impl<T> SampleRingBuffer<T> {
         self.buffer.back()
     }
 
+    /// Copies the buffer contents, oldest first. The monitor publishes this
+    /// as an immutable live snapshot so the read API never touches the
+    /// sampler while a tick is in flight.
+    pub fn snapshot(&self) -> Vec<T>
+    where
+        T: Clone,
+    {
+        self.buffer.iter().cloned().collect()
+    }
+
     fn len(&self) -> usize {
         self.buffer.len()
     }

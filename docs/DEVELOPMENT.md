@@ -7,7 +7,7 @@ Status: Implemented (Linux/Windows bundling verified via CI)
 ### Target matrix
 
 | OS | Architecture | Bundles | Notes |
-|----|--------------|---------|-------|
+| ---- | -------------- | --------- | ------- |
 | Linux | x86_64 | `.deb`, `.AppImage` | release artifacts |
 | Windows | x86_64 | NSIS `.exe` installer | unsigned (SmartScreen warning expected) |
 | macOS | x86_64 | none yet | platform layer implemented, bundling deferred |
@@ -1318,3 +1318,66 @@ The mapping is deliberately 1:1 — every Disk Analyzer component has a Network 
 counterpart with the same layering, the same testing approach, and the same JSON-over-
 pipe contract. The only structural change is lifespan: one-shot → long-lived.
 
+
+---
+
+## Phase 6.7 — Network Analyzer Read API + UI integration (COMPLETE)
+
+Status: Implemented. Turns the Phase 6 collection/persistence pipeline into a
+usable, queryable read API and a first live Network Analyzer screen.
+
+### Rust — read-side API (6.7.1–6.7.4)
+
+- **`network/monitor.rs`** (new) — `LiveTelemetry` + cloneable `MonitorHandle` +
+  `run_monitor`: one long-lived sidecar, one shared `NetworkSampler`, a
+  1-second tick that publishes an immutable live snapshot (ring-buffer copies);
+  graceful 5s backoff respawn on crash. Runs for the app's lifetime,
+  independent of any open page. `Database::persist_rollups` is reached through
+  the shared `storage::DatabaseState` writer.
+- **`storage/history.rs`** (new) — epoch-aligned read SQL over
+  `network_rollups` / `app_usage_rollups`: `bucket_seconds_for_range`
+  (≤1h→60s, ≤6h→300s, else→900s), per-total and per-interface aggregated
+  series, per-app usage totals, top-N. `since` inclusive, `until` exclusive.
+- **`network/readapi.rs`** (new) — camelCase DTOs + pure assembly from live
+  snapshots (grouping, merged totals series) and history rows.
+- **`lib.rs`** — the monitor is spawned once in the setup hook and the app
+  manages a `MonitorHandle` + `storage::DatabaseState`; four commands exposed:
+  `get_network_live`, `get_network_history`, `get_application_history`,
+  `get_top_applications`. `DatabaseState` moved to `storage` so the monitor and
+  the commands share the single writer; `tokio::time` added for the tick.
+
+### Vue — Network Analyzer screen (6.7.5–6.7.6)
+
+- `types/network.ts`, `services/network.ts`, `composables/useNetwork.ts`
+  (live polling starts on mount and stops via `onUnmounted` while the Rust
+  sampler keeps running — Phase 0 lifecycle), `formatRate` util.
+- Components: `NetworkOverview` (RX/TX rates + explicit note that total
+  interface traffic and attributable application traffic differ on Linux),
+  `ThroughputChart` (dependency-free SVG live chart), `InterfacesPanel`,
+  `TopApplications`, and `NetworkAnalyzer` orchestrator with a 1h/6h/24h range
+  selector, live/history sections, loading + error + empty states for both.
+- Wired into the layout nav (`Network`) and `App.vue` as a page-independent
+  section of the dashboard.
+
+### Verification (6.7.7)
+
+- Rust: 51 tests (unit) + 1 sidecar integration — empty history, range bucket
+  aggregation, `since`/`until` boundaries, per-interface series, top-app
+  ranking + limit, live DTO grouping, monitor/sampler isolation. All passing.
+- Frontend: `type-check` ✓, `oxlint` + `eslint` ✓, prettier-formatted ✓,
+  `vite build` ✓, 41 vitest cases ✓ (service window mapping, composable poll
+  lifecycle — including stop() leaves the sampler running, component
+  telemetry/empty/loading/error states, `formatRate`).
+- Cross-project regression: C++ ctest 14/14 ✓.
+
+### Roadmap
+
+```text
+6.5 Linux application attribution       ✅
+6.6 Application persistence + telemetry ✅
+6.7 Read API + Network Analyzer UI      ✅ (this phase)
+6.8 Hardening + cross-platform support  ← NEXT
+6.9 Release/packaging validation
+```
+
+---

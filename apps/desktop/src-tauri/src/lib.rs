@@ -21,9 +21,9 @@ struct CurrentScan {
     cancel_requested: Arc<AtomicBool>,
 }
 
-/// Tauri-managed database state. Owns the single SQLite connection so the
-/// application has exactly one writer, shared behind a mutex.
-struct DatabaseState(Mutex<storage::Database>);
+/// Tauri-managed database state lives in `storage::DatabaseState` so the
+/// network monitor task and the commands share the same single writer.
+use storage::DatabaseState;
 
 fn sidecar_command(
     app: &tauri::AppHandle,
@@ -158,6 +158,111 @@ fn reveal_in_file_manager(path: String) -> Result<(), String> {
     platform::reveal_in_file_manager(&target)
 }
 
+// ---- Network read API (Phase 6.7) ----------------------------------------
+
+/// Live telemetry from the monitor's published ring-buffer snapshots.
+/// Never touches the sidecar: the sampler is already running in the
+/// background, so the UI can poll this freely.
+#[tauri::command]
+fn get_network_live(
+    monitor: State<'_, network::MonitorHandle>,
+) -> network::readapi::NetworkLiveDto {
+    network::readapi::live_dto(&monitor.get())
+}
+
+/// Aggregated interface history over `[since, until)` from `network_rollups`.
+/// Minute buckets are merged into range-appropriate buckets server-side.
+#[tauri::command]
+fn get_network_history(
+    state: State<'_, DatabaseState>,
+    since: i64,
+    until: i64,
+) -> Result<network::readapi::NetworkHistoryDto, String> {
+    if since >= until {
+        return Err(format!(
+            "invalid range: since ({since}) must be before until ({until})"
+        ));
+    }
+
+    let mut database_state = state
+        .0
+        .lock()
+        .map_err(|_| "database lock poisoned".to_string())?;
+    let connection = database_state.connection();
+
+    let bucket_seconds = storage::bucket_seconds_for_range(since, until);
+
+    let totals = storage::query_network_totals(connection, since, until, bucket_seconds)
+        .map_err(|error| error.to_string())?;
+    let interfaces = storage::query_network_by_interface(connection, since, until, bucket_seconds)
+        .map_err(|error| error.to_string())?;
+
+    Ok(network::readapi::network_history_dto(
+        since,
+        until,
+        bucket_seconds,
+        totals,
+        interfaces,
+    ))
+}
+
+/// Per-application usage totals over `[since, until)`, ranked by total bytes.
+#[tauri::command]
+fn get_application_history(
+    state: State<'_, DatabaseState>,
+    since: i64,
+    until: i64,
+) -> Result<Vec<network::readapi::ApplicationUsageDto>, String> {
+    if since >= until {
+        return Err(format!(
+            "invalid range: since ({since}) must be before until ({until})"
+        ));
+    }
+
+    let mut database_state = state
+        .0
+        .lock()
+        .map_err(|_| "database lock poisoned".to_string())?;
+
+    let usage = storage::query_app_usage(database_state.connection(), since, until)
+        .map_err(|error| error.to_string())?;
+
+    Ok(network::readapi::application_usage_dtos(&usage))
+}
+
+/// Top-N application ranking over `[since, until)` from the persisted
+/// minute deltas — never from PIDs.
+#[tauri::command]
+fn get_top_applications(
+    state: State<'_, DatabaseState>,
+    since: i64,
+    until: i64,
+    limit: Option<usize>,
+) -> Result<Vec<network::readapi::ApplicationUsageDto>, String> {
+    if since >= until {
+        return Err(format!(
+            "invalid range: since ({since}) must be before until ({until})"
+        ));
+    }
+
+    let mut database_state = state
+        .0
+        .lock()
+        .map_err(|_| "database lock poisoned".to_string())?;
+
+    let top = storage::top_applications(
+        database_state.connection(),
+        since,
+        until,
+        limit.unwrap_or(DEFAULT_TOP_APPLICATIONS),
+    )
+    .map_err(|error| error.to_string())?;
+
+    Ok(network::readapi::application_usage_dtos(&top))
+}
+
+const DEFAULT_TOP_APPLICATIONS: usize = 10;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -200,6 +305,19 @@ pub fn run() {
 
             eprintln!("[setup] database state managed");
 
+            // Network monitor: one long-lived sidecar + sampler ticking every
+            // second for the lifetime of the app, independent of whether any
+            // Network page is currently open (Phase 0 decision).
+            let monitor = network::MonitorHandle::default();
+            app.manage(monitor.clone());
+
+            tauri::async_runtime::spawn(network::monitor::run_monitor(
+                app.handle().clone(),
+                monitor,
+            ));
+
+            eprintln!("[setup] network monitor started");
+
             Ok(())
         })
         .plugin(tauri_plugin_shell::init())
@@ -207,7 +325,11 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             scan_directory,
             cancel_scan,
-            reveal_in_file_manager
+            reveal_in_file_manager,
+            get_network_live,
+            get_network_history,
+            get_application_history,
+            get_top_applications
         ])
         .run(tauri::generate_context!())
         .expect("error while running Tauri application");

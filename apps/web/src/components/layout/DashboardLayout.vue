@@ -10,6 +10,7 @@ const props = defineProps<{
 const NAV_ITEMS = [
   { id: 'overview', label: 'Overview', icon: '◈' },
   { id: 'storage', label: 'Storage', icon: '▤' },
+  { id: 'network', label: 'Network', icon: '≋' },
   { id: 'volumes', label: 'Volumes', icon: '◫' },
 ] as const
 

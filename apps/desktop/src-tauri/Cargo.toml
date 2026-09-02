@@ -27,6 +27,9 @@ tauri-plugin-shell = "2.3.5"
 tauri-plugin-dialog = "2.7.2"
 rusqlite = { version = "0.32", features = ["bundled"] }
 thiserror = "2"
+# Timer for the network monitor's 1-second sampling tick (tauri owns the
+# runtime; we only need the time primitives).
+tokio = { version = "1", features = ["time"] }
 
 [dev-dependencies]
 tempfile = "3"
