@@ -17,6 +17,7 @@ impl<'a> NetworkRollupRepository<'a> {
         Self { connection }
     }
 
+    #[allow(dead_code)]
     pub fn insert_batch(&mut self, rollups: &[NetworkRollup]) -> rusqlite::Result<()> {
         let transaction = self.connection.transaction()?;
 
@@ -49,6 +50,7 @@ impl<'a> NetworkRollupRepository<'a> {
         transaction.commit()
     }
 
+    #[allow(dead_code)]
     pub fn find_since(&self, since: i64) -> rusqlite::Result<Vec<NetworkRollup>> {
         let mut statement = self.connection.prepare(
             "
@@ -80,6 +82,7 @@ impl<'a> NetworkRollupRepository<'a> {
             .execute("DELETE FROM network_rollups WHERE ts < ?1", [cutoff])
     }
 
+    #[allow(dead_code)]
     pub fn count(&self) -> rusqlite::Result<i64> {
         self.connection
             .query_row("SELECT COUNT(*) FROM network_rollups", [], |row| row.get(0))

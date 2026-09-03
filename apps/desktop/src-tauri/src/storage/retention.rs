@@ -16,8 +16,6 @@ impl RetentionManager {
         Self { retention_days }
     }
 
-    /// Unix timestamp (seconds) where the retention window starts: rows with
-    /// `ts < cutoff` are expired.
     pub fn cutoff_timestamp(&self) -> i64 {
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
@@ -27,12 +25,12 @@ impl RetentionManager {
         now - (self.retention_days * 24 * 60 * 60)
     }
 
+    #[allow(dead_code)]
     pub fn cleanup(&self, repository: &NetworkRollupRepository<'_>) -> rusqlite::Result<usize> {
         repository.delete_before(self.cutoff_timestamp())
     }
 
-    /// Cleans `app_usage_rollups` using the same retention cutoff as
-    /// [`Self::cleanup`]. Both tables share one policy; no separate window.
+    #[allow(dead_code)]
     pub fn cleanup_app(
         &self,
         repository: &AppUsageRollupRepository<'_>,

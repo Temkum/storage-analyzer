@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use rusqlite::{params, Connection};
 
@@ -8,7 +8,6 @@ use super::network_rollup_repository::NetworkRollup;
 
 pub struct Database {
     connection: Connection,
-    path: PathBuf,
 }
 
 impl Database {
@@ -29,11 +28,10 @@ impl Database {
 
         migrations::run(&mut connection)?;
 
-        Ok(Self { connection, path })
+        Ok(Self { connection })
     }
 
-    /// Application-facing entry point used from the Tauri setup hook. Thin
-    /// wrapper over [`Self::open`] so initialization has a single call site.
+    /// Application-facing entry point used from the Tauri setup hook. Thin wrapper over [`Self::open`] so initialization has a single call site.
     pub fn initialize(app_data_dir: &Path) -> rusqlite::Result<Self> {
         Self::open(app_data_dir)
     }
@@ -42,14 +40,7 @@ impl Database {
         &mut self.connection
     }
 
-    pub fn path(&self) -> &Path {
-        &self.path
-    }
-
-    /// Persists interface and application rollups in a **single SQLite
-    /// transaction**. If either half fails, neither side claims the minute
-    /// was durably persisted — giving the consistency guarantee that
-    /// minute N is either fully written or fully absent.
+    /// Persists interface and application rollups in a **single SQLite transaction**.
     pub fn persist_rollups(
         &mut self,
         interface_rollups: &[NetworkRollup],

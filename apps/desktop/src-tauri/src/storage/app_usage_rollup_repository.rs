@@ -1,10 +1,5 @@
 use rusqlite::{params, Connection};
 
-/// One persisted application rollup row. `ts` is the start of the 60-second
-/// bucket (matching `network_rollups` semantics). `app_id` is the canonical
-/// executable path. `process_name` and `executable_path` are display metadata
-/// captured at rollup time. RX/TX are the delta bytes accumulated during that
-/// minute.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppUsageRollup {
     pub ts: i64,
@@ -24,9 +19,8 @@ impl<'a> AppUsageRollupRepository<'a> {
         Self { connection }
     }
 
-    /// Inserts all rollups in one rusqlite transaction. Duplicate
-    /// `(ts, app_id)` rows are updated in place (ON CONFLICT DO UPDATE),
-    /// preserving the latest `process_name` / `executable_path` / counters.
+    /// Inserts all rollups in one rusqlite transaction. Duplicate (ts, app_id) rows are updated in place (ON CONFLICT DO UPDATE)
+    #[allow(dead_code)]
     pub fn insert_batch(&mut self, rollups: &[AppUsageRollup]) -> rusqlite::Result<()> {
         let transaction = self.connection.transaction()?;
 
@@ -65,6 +59,7 @@ impl<'a> AppUsageRollupRepository<'a> {
         transaction.commit()
     }
 
+    #[allow(dead_code)]
     pub fn find_since(&self, since: i64) -> rusqlite::Result<Vec<AppUsageRollup>> {
         let mut statement = self.connection.prepare(
             "
@@ -100,6 +95,7 @@ impl<'a> AppUsageRollupRepository<'a> {
             .execute("DELETE FROM app_usage_rollups WHERE ts < ?1", [cutoff])
     }
 
+    #[allow(dead_code)]
     pub fn count(&self) -> rusqlite::Result<i64> {
         self.connection
             .query_row("SELECT COUNT(*) FROM app_usage_rollups", [], |row| {

@@ -14,9 +14,7 @@ pub const RING_BUFFER_CAPACITY: usize = 600;
 /// Number of 1-second samples that make up one persisted rollup interval.
 pub const ROLLUP_INTERVAL_SECONDS: i64 = 60;
 
-/// Upper bound on applications tracked simultaneously. Desktop machines
-/// rarely exceed a few dozen concurrently network-active executables; the
-/// cap keeps the application ring buffer bounded without blindly allocating
+/// Upper bound on applications tracked simultaneously. 
 /// `600 × N` for an unbounded N.
 pub const MAX_TRACKED_APPLICATIONS: usize = 100;
 
@@ -24,9 +22,6 @@ pub const MAX_TRACKED_APPLICATIONS: usize = 100;
 /// maximum samples × maximum tracked applications.
 pub const APPLICATION_RING_BUFFER_CAPACITY: usize = RING_BUFFER_CAPACITY * MAX_TRACKED_APPLICATIONS;
 
-/// One calculated telemetry sample for a single interface. These are byte
-/// counts transferred during the sampling interval — NOT the cumulative
-/// counters reported by the C++ provider.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NetworkSample {
     pub timestamp: i64,
@@ -35,9 +30,6 @@ pub struct NetworkSample {
     pub bytes_sent: u64,
 }
 
-/// One calculated telemetry sample for a single application: the byte counts
-/// that application transferred during the sampling interval. Identity is
-/// `app_id` (the canonical executable path); a PID is never part of a sample.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AppSample {
     pub timestamp: i64,
@@ -48,8 +40,6 @@ pub struct AppSample {
     pub bytes_sent: u64,
 }
 
-/// Common timestamp accessor so one bounded ring-buffer implementation can
-/// hold either interface or application samples.
 pub trait Timestamped {
     fn timestamp(&self) -> i64;
 }
@@ -119,7 +109,9 @@ impl<T> SampleRingBuffer<T> {
         self.buffer.push_back(sample);
     }
 
-    /// Most recent sample, if any.
+    /// Most recent sample, if any. (Exercised by the unit tests; the live path
+    /// uses `push`/`snapshot`.)
+    #[allow(dead_code)]
     fn latest(&self) -> Option<&T> {
         self.buffer.back()
     }
@@ -134,10 +126,12 @@ impl<T> SampleRingBuffer<T> {
         self.buffer.iter().cloned().collect()
     }
 
+    #[allow(dead_code)]
     fn len(&self) -> usize {
         self.buffer.len()
     }
 
+    #[allow(dead_code)]
     fn is_empty(&self) -> bool {
         self.buffer.is_empty()
     }
@@ -146,6 +140,7 @@ impl<T> SampleRingBuffer<T> {
 impl<T: Timestamped> SampleRingBuffer<T> {
     /// Samples whose timestamp falls strictly inside the trailing
     /// `duration_seconds` window measured from the latest sample.
+    #[allow(dead_code)]
     fn recent(&self, duration_seconds: i64) -> Vec<&T> {
         let Some(latest_ts) = self.latest().map(Timestamped::timestamp) else {
             return Vec::new();
