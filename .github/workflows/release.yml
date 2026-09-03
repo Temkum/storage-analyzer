@@ -54,7 +54,7 @@ jobs:
           ENGINE_BUILD_TYPE: Release
         run: |
           if [ "$RUNNER_OS" = "Windows" ]; then
-            .\\scripts\\build-engine.ps1
+            powershell -File scripts/build-engine.ps1
           else
             ./scripts/build-engine.sh
           fi
@@ -75,6 +75,7 @@ jobs:
         run: cargo install tauri-cli --version '^2' --locked
 
       - name: Bundle desktop app
+        working-directory: apps/desktop/src-tauri
         run: cargo tauri build --bundles ${{ matrix.bundles }}
 
       - name: Upload artifacts (Linux)
