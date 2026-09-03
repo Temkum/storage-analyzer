@@ -22,7 +22,7 @@ const apps: ApplicationUsage[] = [
 ]
 
 describe('TopApplications', () => {
-  it('renders the ranked application list with RX/TX totals', () => {
+  it('renders the ranked application list with Received/Sent totals', () => {
     const wrapper = mount(TopApplications, {
       props: { applications: apps, loading: false },
     })
@@ -31,8 +31,9 @@ describe('TopApplications', () => {
 
     expect(itemTexts).toHaveLength(2)
     expect(itemTexts[0]).toContain('chrome')
-    expect(itemTexts[0]).toContain('GB RX')
-    expect(itemTexts[0]).toContain('MB TX')
+    expect(itemTexts[0]).toMatch(/Received/)
+    expect(itemTexts[0]).toMatch(/Sent/)
+    expect(itemTexts[0]).toMatch(/1.20 GB/)
     expect(itemTexts[0]).toMatch(/^1chrome/)
     expect(itemTexts[1]).toMatch(/^2firefox/)
   })

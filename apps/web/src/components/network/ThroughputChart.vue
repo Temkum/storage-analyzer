@@ -90,8 +90,8 @@ const peakLabel = computed(() => formatRate(peakRate.value))
     </svg>
 
     <div class="chart__legend">
-      <span class="chart__key chart__key--rx">RX</span>
-      <span class="chart__key chart__key--tx">TX</span>
+      <span class="chart__key chart__key--rx">↓ Received</span>
+      <span class="chart__key chart__key--tx">↑ Sent</span>
       <span class="chart__peak">peak {{ peakLabel }}</span>
     </div>
   </div>

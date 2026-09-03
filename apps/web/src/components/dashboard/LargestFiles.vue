@@ -160,10 +160,12 @@ async function reveal(entry: FileRow) {
 
 <style scoped>
 .largest-files {
+  min-width: 0;
   padding: 24px;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #fff;
+  overflow: hidden;
 }
 
 .largest-files__header h2 {
@@ -182,6 +184,7 @@ async function reveal(entry: FileRow) {
 
 .largest-files__list {
   display: grid;
+  min-width: 0;
   gap: 2px;
   margin: 16px 0 0;
   padding: 0;

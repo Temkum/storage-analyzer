@@ -46,8 +46,18 @@ const totals = computed<InterfaceTotal[]>(() => {
     <ul v-else class="interfaces__list">
       <li v-for="total in totals" :key="total.interfaceId" class="interfaces__item">
         <strong class="interfaces__name" :title="total.interfaceId">{{ total.interfaceId }}</strong>
-        <span class="interfaces__rx">{{ formatBytes(total.bytesReceived) }} RX</span>
-        <span class="interfaces__tx">{{ formatBytes(total.bytesSent) }} TX</span>
+
+        <div class="interfaces__metrics">
+          <span class="interfaces__metric interfaces__metric--received"
+            :title="`Downloaded ${formatBytes(total.bytesReceived)}`">
+            <span class="interfaces__arrow" aria-hidden="true">↓</span>
+            Received <strong>{{ formatBytes(total.bytesReceived) }}</strong>
+          </span>
+          <span class="interfaces__metric interfaces__metric--sent" :title="`Uploaded ${formatBytes(total.bytesSent)}`">
+            <span class="interfaces__arrow" aria-hidden="true">↑</span>
+            Sent <strong>{{ formatBytes(total.bytesSent) }}</strong>
+          </span>
+        </div>
       </li>
     </ul>
   </section>
@@ -55,6 +65,7 @@ const totals = computed<InterfaceTotal[]>(() => {
 
 <style scoped>
 .interfaces {
+  min-width: 0;
   padding: 24px;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
@@ -97,6 +108,7 @@ const totals = computed<InterfaceTotal[]>(() => {
 
 .interfaces__list {
   display: grid;
+  min-width: 0;
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -105,28 +117,85 @@ const totals = computed<InterfaceTotal[]>(() => {
 
 .interfaces__item {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: 16px;
-  padding: 11px 14px;
+  gap: 14px;
+  padding: 12px 14px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
+  background: #ffffff;
 }
 
 .interfaces__name {
-  flex: 1;
   overflow: hidden;
+  flex: 1 1 auto;
   color: #0f172a;
   font-size: 13px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.interfaces__rx,
-.interfaces__tx {
-  flex-shrink: 0;
-  color: #475569;
-  font-size: 12px;
+.interfaces__metrics {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.interfaces__metric {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.interfaces__metric strong {
+  font-weight: 700;
+}
+
+.interfaces__metric--received {
+  border-color: #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.interfaces__metric--received .interfaces__arrow {
+  color: #2563eb;
+}
+
+.interfaces__metric--sent {
+  border-color: #dcfce7;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.interfaces__metric--sent .interfaces__arrow {
+  color: #16a34a;
+}
+
+.interfaces__arrow {
+  font-weight: 800;
+}
+
+@media (max-width: 1180px) {
+  .interfaces__item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .interfaces__metrics {
+    width: 100%;
+    justify-content: flex-start;
+  }
 }
 </style>

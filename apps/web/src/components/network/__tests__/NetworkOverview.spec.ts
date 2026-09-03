@@ -14,8 +14,8 @@ describe('NetworkOverview', () => {
     })
 
     expect(wrapper.find('.overview__value').text()).toContain('MB/s')
-    expect(wrapper.text()).toContain('RX')
-    expect(wrapper.text()).toContain('TX')
+    expect(wrapper.text()).toContain('Received')
+    expect(wrapper.text()).toContain('Sent')
   })
 
   it('shows a placeholder when disconnected', () => {
@@ -31,7 +31,7 @@ describe('NetworkOverview', () => {
       props: { bytesReceivedPerSecond: 1, bytesSentPerSecond: 1, connected: true },
     })
 
-    expect(wrapper.text()).toMatch(/total interface traffic/i)
+    expect(wrapper.text()).toMatch(/Received.*are total interface traffic/i)
     expect(wrapper.text()).toMatch(/attributable through \/proc/i)
   })
 })

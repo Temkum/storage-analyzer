@@ -146,10 +146,35 @@ function usageTone(used: number, total: number): 'normal' | 'warning' | 'critica
 
 .volumes__list {
   display: grid;
+  max-height: 340px;
   gap: 14px;
   margin: 0;
   padding: 0;
+  padding-right: 6px;
+  overflow-y: auto;
   list-style: none;
+  scrollbar-color: #cbd5e1 transparent;
+  scrollbar-width: thin;
+}
+
+.volumes__list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.volumes__list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.volumes__list::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: #cbd5e1;
+  background-clip: padding-box;
+}
+
+.volumes__list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+  background-clip: padding-box;
 }
 
 .volumes__item {

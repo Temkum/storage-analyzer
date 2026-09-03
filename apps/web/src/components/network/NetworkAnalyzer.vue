@@ -128,10 +128,10 @@ function onRangeChange(event: Event) {
 
           <div class="network__history-totals">
             <span>
-              Total RX <strong>{{ formatBytes(historySum.bytesReceived) }}</strong>
+              Total received (↓) <strong>{{ formatBytes(historySum.bytesReceived) }}</strong>
             </span>
             <span>
-              Total TX <strong>{{ formatBytes(historySum.bytesSent) }}</strong>
+              Total sent (↑) <strong>{{ formatBytes(historySum.bytesSent) }}</strong>
             </span>
             <span>
               Buckets <strong>{{ history.totals.length }}</strong>

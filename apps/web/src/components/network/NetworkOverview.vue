@@ -16,18 +16,18 @@ const txLabel = computed(() => formatRate(props.bytesSentPerSecond))
 <template>
   <section class="overview">
     <div class="overview__meter">
-      <span class="overview__label overview__label--rx">RX</span>
+      <span class="overview__label overview__label--rx" aria-label="Received (downloads)">↓ Received</span>
       <strong class="overview__value">{{ connected ? rxLabel : '—' }}</strong>
     </div>
 
     <div class="overview__meter">
-      <span class="overview__label overview__label--tx">TX</span>
+      <span class="overview__label overview__label--tx" aria-label="Sent (uploads)">↑ Sent</span>
       <strong class="overview__value">{{ connected ? txLabel : '—' }}</strong>
     </div>
 
     <p class="overview__note">
-      RX/TX are total interface traffic. Application attribution on Linux covers only traffic
-      attributable through /proc + TCP — the two numbers will legitimately differ.
+      Received (↓) and Sent (↑) are total interface traffic. Application attribution on Linux covers
+      only traffic attributable through /proc + TCP — the two numbers will legitimately differ.
     </p>
   </section>
 </template>

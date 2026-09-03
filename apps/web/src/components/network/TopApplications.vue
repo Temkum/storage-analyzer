@@ -14,7 +14,8 @@ defineProps<{
       <div>
         <h2>Top Applications</h2>
         <p>
-          Ranked from persisted per-minute deltas. Identity is the executable path — never a PID.
+          Ranked from persisted per-minute deltas. Received is traffic your apps downloaded; Sent is
+          what they uploaded.
         </p>
       </div>
     </div>
@@ -37,9 +38,18 @@ defineProps<{
           <span class="apps__path" :title="app.appId">{{ app.appId }}</span>
         </div>
 
-        <div class="apps__usage">
-          <span class="apps__rx">{{ formatBytes(app.bytesReceived) }} RX</span>
-          <span class="apps__tx">{{ formatBytes(app.bytesSent) }} TX</span>
+        <div class="apps__metrics">
+          <span class="apps__chip apps__chip--received"
+            :title="`Received (downloaded) ${formatBytes(app.bytesReceived)}`">
+            <span class="apps__arrow" aria-hidden="true">↓</span>
+            Received
+            <strong>{{ formatBytes(app.bytesReceived) }}</strong>
+          </span>
+          <span class="apps__chip apps__chip--sent" :title="`Sent (uploaded) ${formatBytes(app.bytesSent)}`">
+            <span class="apps__arrow" aria-hidden="true">↑</span>
+            Sent
+            <strong>{{ formatBytes(app.bytesSent) }}</strong>
+          </span>
         </div>
       </li>
     </ol>
@@ -48,10 +58,18 @@ defineProps<{
 
 <style scoped>
 .apps {
+  min-width: 0;
   padding: 24px;
   border: 1px solid #e2e8f0;
   border-radius: 12px;
   background: #ffffff;
+}
+
+.apps__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .apps__header h2 {
@@ -60,8 +78,11 @@ defineProps<{
 }
 
 .apps__header p {
+  max-width: 46ch;
   margin: 4px 0 0;
   color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .apps__loading,
@@ -79,27 +100,29 @@ defineProps<{
 
 .apps__list {
   display: grid;
+  min-width: 0;
   gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
-  counter-reset: apps;
 }
 
 .apps__item {
   display: flex;
+  min-width: 0;
   align-items: center;
-  gap: 12px;
-  padding: 11px 14px;
+  gap: 14px;
+  padding: 12px 14px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
+  background: #ffffff;
 }
 
 .apps__rank {
   display: grid;
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
   place-items: center;
   border-radius: 999px;
   background: #f1f5f9;
@@ -111,7 +134,7 @@ defineProps<{
 .apps__identity {
   display: flex;
   min-width: 0;
-  flex: 1;
+  flex: 1 1 auto;
   flex-direction: column;
   gap: 2px;
 }
@@ -120,6 +143,7 @@ defineProps<{
   overflow: hidden;
   color: #0f172a;
   font-size: 13px;
+  font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -132,19 +156,70 @@ defineProps<{
   white-space: nowrap;
 }
 
-.apps__usage {
+.apps__metrics {
   display: flex;
-  flex-shrink: 0;
-  flex-direction: column;
+  flex: 0 0 auto;
   align-items: flex-end;
-  gap: 2px;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
-.apps__rx,
-.apps__tx {
-  color: #475569;
-  font-size: 12px;
+.apps__chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.apps__chip strong {
+  font-weight: 700;
+}
+
+.apps__chip--received {
+  border-color: #dbeafe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.apps__chip--received .apps__arrow {
+  color: #2563eb;
+}
+
+.apps__chip--sent {
+  border-color: #dcfce7;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.apps__chip--sent .apps__arrow {
+  color: #16a34a;
+}
+
+.apps__arrow {
+  font-weight: 800;
+}
+
+@media (max-width: 1180px) {
+  .apps__item {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .apps__identity,
+  .apps__metrics {
+    width: 100%;
+  }
+
+  .apps__metrics {
+    justify-content: flex-start;
+  }
 }
 </style>
