@@ -49,7 +49,7 @@ gate that keeps all sidecars wire-compatible with the Vue UI.
 
 Both scripts configure CMake, build the engine, run ctest, and stage the
 sidecar into `apps/desktop/src-tauri/binaries/` with the correct target
-triple (e.g. `system-analyzer-x86_64-unknown-linux-gnu`).
+triple (e.g. `system-analyzer-engine-x86_64-unknown-linux-gnu`).
 
 ### Versioning
 
@@ -138,7 +138,7 @@ Status: In Progress
 
 ### Current executable
 
-`build/system-analyzer`
+`build/system-analyzer-engine`
 
 ### Next
 
@@ -412,8 +412,8 @@ none of which makes sense as a per-scan fork/exec cycle.
 │  Rollup target: network_rollups table                        │
 │                                                              │
 │  main.cpp branches:                                           │
-│    system-analyzer <directory>  → Disk Analyzer (one-shot)   │
-│    system-analyzer --network    → Network Analyzer (long-lived)│
+│    system-analyzer-engine <directory>  → Disk Analyzer (one-shot)   │
+│    system-analyzer-engine --network    → Network Analyzer (long-lived)│
 └──────────────────────────────────────────────────────────────┘
 ```
 
@@ -423,12 +423,12 @@ none of which makes sense as a per-scan fork/exec cycle.
 
 #### Mode selection in main.cpp
 
-The single `system-analyzer` binary now supports two modes, selected by argv:
+The single `system-analyzer-engine` binary now supports two modes, selected by argv:
 
 | Invocation | Mode | Lifetime | Command input | Response output |
 |---|---|---|---|---|
-| `system-analyzer <directory>` | Disk scan | one-shot | CLI arg | one JSON document on stdout |
-| `system-analyzer --network` | Network monitor | long-lived | JSON-Lines on stdin | JSON-Lines on stdout |
+| `system-analyzer-engine <directory>` | Disk scan | one-shot | CLI arg | one JSON document on stdout |
+| `system-analyzer-engine --network` | Network monitor | long-lived | JSON-Lines on stdin | JSON-Lines on stdout |
 
 ```cpp
 // cpp/src/main.cpp — addition
@@ -439,7 +439,7 @@ int main(int argc, char *argv[]) {
         return NetworkApp::run();   // long-lived loop, never returns until shutdown
     }
 
-    std::cerr << "Usage: system-analyzer <directory> | --network\n";
+    std::cerr << "Usage: system-analyzer-engine <directory> | --network\n";
     return 1;
 }
 ```
@@ -539,7 +539,7 @@ If the sidecar does not exit within 3 seconds of the shutdown command, Tauri cal
 The `--network` flag routes to a completely separate code path in `main.cpp`. The existing
 one-shot disk scan code path is **unchanged**. The C++ engine binary simply grows a new
 `else if` branch. CMake does not need separate targets — it is the same
-`system-analyzer` executable with a new `main.cpp` branch and additional source/object
+`system-analyzer-engine` executable with a new `main.cpp` branch and additional source/object
 files.
 
 ---
@@ -564,11 +564,11 @@ library target `sqlite3_static`. This keeps the build self-contained — consist
 `nlohmann/json` is already vendored.
 
 The database file lives at the Tauri user-data directory (on Linux:
-`$XDG_DATA_HOME/system-analyzer/` or `$HOME/.local/share/system-analyzer/`), which the
+`$XDG_DATA_HOME/system-analyzer-engine/` or `$HOME/.local/share/system-analyzer-engine/`), which the
 sidecar receives via an env var or CLI arg:
 
 ```text
-system-analyzer --network --db-path <path>
+system-analyzer-engine --network --db-path <path>
 ```
 
 #### Schema (stable for Phase 1–5)
@@ -721,7 +721,7 @@ Live chart + network summary
 
 The slice passes when all of these are true:
 
-1. `system-analyzer --network` starts, discovers interfaces, and emits a valid
+1. `system-analyzer-engine --network` starts, discovers interfaces, and emits a valid
    `interfaces` message on stdout.
 2. After ~1 second, it emits a `network_snapshot` message with correct cumulative
    counters for every non-loopback interface.
@@ -937,7 +937,7 @@ target_compile_definitions(sqlite3_static PRIVATE SQLITE_OMIT_LOAD_EXTENSION)
 
 ##### New engine sources
 
-The `system-analyzer` executable gains NetworkApp sources but **only on non-Windows** for
+The `system-analyzer-engine` executable gains NetworkApp sources but **only on non-Windows** for
 now (Linux-only Phase 0.4). Windows/macOS network providers are added in Phases 4–5.
 
 ```cmake
@@ -952,7 +952,7 @@ if(NOT WIN32)
 endif()
 ```
 
-> **Important:** The `system-analyzer` binary is shared. When compiled on Linux, it
+> **Important:** The `system-analyzer-engine` binary is shared. When compiled on Linux, it
 > supports both `<directory>` (disk) and `--network`. When compiled on Windows (during
 > Phase 4), it still only supports disk scan (network not yet compiled in). The `--network`
 > branch in `main.cpp` is guarded to avoid linking unused symbols on platforms that
@@ -1097,7 +1097,7 @@ This replaces the disk `CurrentScan` pattern with a persistent handle. There is 
 
 | Tauri command | Action |
 |---|---|
-| `network_start` | Spawn `system-analyzer --network --db-path <path>`, register stdout listener |
+| `network_start` | Spawn `system-analyzer-engine --network --db-path <path>`, register stdout listener |
 | `network_stop` | Write `{"command":"shutdown"}` to stdin, await termination |
 | `network_history` | Write `{"command":"history",...}` to stdin, await `history_response` on stdout |
 
@@ -1297,7 +1297,7 @@ reviewed.
 
 | Disk Analyzer concept | Network Analyzer equivalent |
 |---|---|
-| `system-analyzer <dir>` (one-shot) | `system-analyzer --network` (long-lived) |
+| `system-analyzer-engine <dir>` (one-shot) | `system-analyzer-engine --network` (long-lived) |
 | `main.cpp` → one scan, one JSON output | `NetworkApp::run()` → command loop |
 | `stdout` → single JSON `ScanResult` | `stdout` → JSON-Lines stream of messages |
 | `stderr` → `PROGRESS:<n>` | `stderr` → free-form diagnostics |

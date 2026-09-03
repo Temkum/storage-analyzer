@@ -27,7 +27,7 @@ if(WIN32)
     set(SYSTEM_ANALYZER_PLATFORM_DIR windows)
     set(SIDECAR_TARGET_TRIPLE "x86_64-pc-windows-msvc" CACHE STRING
         "Tauri sidecar target triple")
-    set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}.exe")
+    set(SIDECAR_FILENAME "system-analyzer-engine-${SIDECAR_TARGET_TRIPLE}.exe")
 elseif(APPLE)
     set(SYSTEM_ANALYZER_PLATFORM_DIR macos)
     # Rust target triples name Apple Silicon "aarch64", while CMake reports
@@ -40,12 +40,12 @@ elseif(APPLE)
         set(SIDECAR_TARGET_TRIPLE "x86_64-apple-darwin" CACHE STRING
             "Tauri sidecar target triple")
     endif()
-    set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}")
+    set(SIDECAR_FILENAME "system-analyzer-engine-${SIDECAR_TARGET_TRIPLE}")
 else()
     set(SYSTEM_ANALYZER_PLATFORM_DIR linux)
     set(SIDECAR_TARGET_TRIPLE "${CMAKE_HOST_SYSTEM_PROCESSOR}-unknown-linux-gnu" CACHE STRING
         "Tauri sidecar target triple")
-    set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}")
+    set(SIDECAR_FILENAME "system-analyzer-engine-${SIDECAR_TARGET_TRIPLE}")
 endif()
 
 message(STATUS "Platform layer: ${SYSTEM_ANALYZER_PLATFORM_DIR} (sidecar: ${SIDECAR_FILENAME})")
@@ -88,12 +88,12 @@ set(ENGINE_SOURCES
     ${PLATFORM_SOURCES}
 )
 
-add_executable(system-analyzer
+add_executable(system-analyzer-engine
     cpp/src/main.cpp
     ${ENGINE_SOURCES}
 )
 
-target_include_directories(system-analyzer
+target_include_directories(system-analyzer-engine
     PRIVATE
         cpp/include
         cpp/third_party
@@ -108,9 +108,9 @@ set(TAURI_BINARIES_DIR "${CMAKE_SOURCE_DIR}/apps/desktop/src-tauri/binaries")
 file(MAKE_DIRECTORY "${TAURI_BINARIES_DIR}")
 
 add_custom_command(
-    TARGET system-analyzer POST_BUILD
+    TARGET system-analyzer-engine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:system-analyzer>
+        $<TARGET_FILE:system-analyzer-engine>
         "${TAURI_BINARIES_DIR}/${SIDECAR_FILENAME}"
     COMMENT "Staging sidecar binary for Tauri (${SIDECAR_FILENAME})"
 )
@@ -361,6 +361,6 @@ if(NOT WIN32)
 
     add_test(
         NAME network-sidecar
-        COMMAND network-sidecar-integration-test $<TARGET_FILE:system-analyzer>
+        COMMAND network-sidecar-integration-test $<TARGET_FILE:system-analyzer-engine>
     )
 endif()

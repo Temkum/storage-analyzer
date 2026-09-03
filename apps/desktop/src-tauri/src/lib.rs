@@ -31,7 +31,7 @@ fn sidecar_command(
 ) -> Result<tauri_plugin_shell::process::Command, String> {
     Ok(app
         .shell()
-        .sidecar("system-analyzer")
+        .sidecar("system-analyzer-engine")
         .map_err(|error| format!("Failed to locate C++ engine: {error}"))?
         .args([path]))
 }

@@ -5,7 +5,7 @@
 //! ```text
 //! Tauri (mock app + tauri-plugin-shell)
 //!   ↓ spawn once
-//! system-analyzer --network
+//! system-analyzer-engine --network
 //!   ↓ {"command":"network_snapshot"}
 //! snapshot
 //!   ↓ {"command":"network_snapshot"}
@@ -16,7 +16,7 @@
 
 use std::path::PathBuf;
 
-use app_lib::network::{NetworkError, NetworkSidecar};
+use system_analyzer_lib::network::{NetworkError, NetworkSidecar};
 
 /// Stages the freshly built C++ sidecar where the tauri-plugin-shell sidecar
 /// resolver looks for it during cargo tests: next to the test executable,
@@ -43,11 +43,11 @@ fn stage_sidecar_binary() {
                 .find(|path| {
                     path.file_name()
                         .and_then(|name| name.to_str())
-                        .is_some_and(|name| name.starts_with("system-analyzer-"))
+                        .is_some_and(|name| name.starts_with("system-analyzer-engine-"))
                 })
         })
         .or_else(|| {
-            let built = manifest_dir.join("../../../build/system-analyzer");
+            let built = manifest_dir.join("../../../build/system-analyzer-engine");
             built.is_file().then_some(built)
         })
         .expect(
@@ -69,7 +69,7 @@ fn stage_sidecar_binary() {
 
     std::fs::create_dir_all(&base_dir).expect("create staging dir");
 
-    std::fs::copy(&source, base_dir.join("system-analyzer"))
+    std::fs::copy(&source, base_dir.join("system-analyzer-engine"))
         .expect("failed to stage sidecar binary");
 }
 

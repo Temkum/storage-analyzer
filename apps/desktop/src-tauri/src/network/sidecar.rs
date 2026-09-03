@@ -6,7 +6,7 @@ use tauri_plugin_shell::ShellExt;
 use super::types::NetworkSnapshot;
 
 /// The sidecar program registered in tauri.conf.json `externalBin`.
-const SIDECAR_PROGRAM: &str = "system-analyzer";
+const SIDECAR_PROGRAM: &str = "system-analyzer-engine";
 
 const SNAPSHOT_REQUEST: &str = r#"{"command":"network_snapshot"}"#;
 const SHUTDOWN_REQUEST: &str = r#"{"command":"shutdown"}"#;

@@ -21,7 +21,7 @@ cmake --build build
 ### Run
 
 ```bash
-./build/system-analyzer
+./build/system-analyzer-engine
 ```
 
 ### Debug build
@@ -75,7 +75,7 @@ everything:
 cmake --build build --target scan-result-serializer-test
 ```
 
-Available targets in this project: `system-analyzer`,
+Available targets in this project: `system-analyzer-engine`,
 `directory-size-aggregator-test`, `scan-result-test`,
 `scan-result-serializer-test`, `linux-file-scanner-test` (Linux only),
 `linux-disk-usage-test` (Linux only), `linux-volume-provider-test` (Linux
@@ -241,7 +241,7 @@ Tells the compiler that callers should not silently ignore the return value.
 Start:
 
 ```bash
-gdb ./build/system-analyzer
+gdb ./build/system-analyzer-engine
 ```
 
 Disable Ubuntu debuginfod downloads when debugging locally:
@@ -301,7 +301,7 @@ Use `next` to execute the statement before inspecting it.
 ### Debug a test binary with an argument
 
 ```bash
-gdb --args ./build/system-analyzer /home/user/some-directory
+gdb --args ./build/system-analyzer-engine /home/user/some-directory
 ```
 
 ### Print a backtrace after a crash
@@ -335,7 +335,7 @@ use-after-free in the scanner/aggregator:
 
 ```bash
 sudo apt-get install valgrind
-valgrind --leak-check=full ./build/system-analyzer /path/to/directory
+valgrind --leak-check=full ./build/system-analyzer-engine /path/to/directory
 ```
 
 ---
