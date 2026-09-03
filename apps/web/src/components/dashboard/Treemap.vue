@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 import type { ScanResult } from '@/types/scan'
 import { formatBytes } from '@/utils/format'
@@ -11,7 +11,7 @@ interface TreemapItem {
   path: string
   size: number
   percentage: number
-  depth: number
+  isDir: boolean
 }
 
 interface Rect {
@@ -20,6 +20,7 @@ interface Rect {
   y: number
   width: number
   height: number
+  colorIndex: number
 }
 
 const props = defineProps<{
@@ -32,11 +33,25 @@ const emit = defineEmits<{
 }>()
 
 const VIEWBOX_WIDTH = 1000
-const VIEWBOX_HEIGHT = 560
-const GAP = 3
+const VIEWBOX_HEIGHT = 520
+const GAP = 2
+
+const hoveredItem = ref<TreemapItem | null>(null)
+
+// Accessible, distinct palette scale (Dark slate -> Indigo -> Blue -> Cyan -> Teal -> Amber)
+const TILE_PALETTE = [
+  { fill: '#1e293b', border: '#334155', text: '#f8fafc', muted: '#94a3b8' },
+  { fill: '#312e81', border: '#4338ca', text: '#e0e7ff', muted: '#a5b4fc' },
+  { fill: '#1e40af', border: '#1d4ed8', text: '#dbeafe', muted: '#93c5fd' },
+  { fill: '#0369a1', border: '#0284c7', text: '#e0f2fe', muted: '#7dd3fc' },
+  { fill: '#0f766e', border: '#0d9488', text: '#ccfbf1', muted: '#5eead4' },
+  { fill: '#b45309', border: '#d97706', text: '#fef3c7', muted: '#fcd34d' },
+]
+
+const rootPath = computed(() => normalizePath(props.result.rootPath))
 
 const items = computed<TreemapItem[]>(() => {
-  const root = normalizePath(props.result.rootPath)
+  const root = rootPath.value
 
   const directories = props.result.directories
     .filter((directory) => isDirectChild(directory.path, root))
@@ -47,10 +62,7 @@ const items = computed<TreemapItem[]>(() => {
     0,
   )
 
-  const rootFilesSize = Math.max(
-    props.result.totalSize - directorySize,
-    0,
-  )
+  const rootFilesSize = Math.max(props.result.totalSize - directorySize, 0)
 
   const values: TreemapItem[] = directories.map((directory) => ({
     id: directory.path,
@@ -58,17 +70,17 @@ const items = computed<TreemapItem[]>(() => {
     path: directory.path,
     size: directory.size,
     percentage: 0,
-    depth: 0,
+    isDir: true,
   }))
 
   if (rootFilesSize > 0) {
     values.push({
       id: `${root}:files`,
-      label: 'Files in root',
+      label: 'Root Files',
       path: root,
       size: rootFilesSize,
       percentage: 0,
-      depth: 0,
+      isDir: false,
     })
   }
 
@@ -83,29 +95,20 @@ const items = computed<TreemapItem[]>(() => {
 })
 
 function canNavigateTile(item: TreemapItem): boolean {
-  return item.path !== normalizePath(props.result.rootPath)
+  return item.isDir && item.path !== rootPath.value
 }
 
 function handleTileClick(item: TreemapItem) {
-  if (props.navigating || !canNavigateTile(item)) {
-    return
-  }
-
+  if (props.navigating || !canNavigateTile(item)) return
   emit('navigate', item.path)
 }
 
-function layout(items: TreemapItem[]): Rect[] {
-  if (items.length === 0) {
-    return []
-  }
-
+function layout(items: TreemapItem[]): Omit<Rect, 'colorIndex'>[] {
+  if (items.length === 0) return []
   const total = items.reduce((sum, item) => sum + item.size, 0)
+  if (total === 0) return []
 
-  if (total === 0) {
-    return []
-  }
-
-  const result: Rect[] = []
+  const result: Omit<Rect, 'colorIndex'>[] = []
 
   function partition(
     entries: TreemapItem[],
@@ -115,40 +118,24 @@ function layout(items: TreemapItem[]): Rect[] {
     height: number,
     horizontal: boolean,
   ) {
-    if (entries.length === 0 || width <= 0 || height <= 0) {
-      return
-    }
+    if (entries.length === 0 || width <= 0 || height <= 0) return
 
     if (entries.length === 1) {
       const only = entries[0]
-
       if (only) {
-        result.push({
-          item: only,
-          x,
-          y,
-          width,
-          height,
-        })
+        result.push({ item: only, x, y, width, height })
       }
-
       return
     }
 
     const sum = entries.reduce((value, item) => value + item.size, 0)
-
     let accumulated = 0
     let splitIndex = 1
 
-    for (let index = 0; index < entries.length - 1; index += 1) {
+    for (let index = 0; index < entries.length - 1; index++) {
       const entry = entries[index]
-
-      if (!entry) {
-        break
-      }
-
+      if (!entry) break
       accumulated += entry.size
-
       if (accumulated >= sum / 2) {
         splitIndex = index + 1
         break
@@ -157,54 +144,17 @@ function layout(items: TreemapItem[]): Rect[] {
 
     const first = entries.slice(0, splitIndex)
     const second = entries.slice(splitIndex)
-
-    const firstSize = first.reduce(
-      (value, item) => value + item.size,
-      0,
-    )
-
+    const firstSize = first.reduce((value, item) => value + item.size, 0)
     const ratio = firstSize / sum
 
     if (horizontal) {
       const firstWidth = width * ratio
-
-      partition(
-        first,
-        x,
-        y,
-        firstWidth,
-        height,
-        !horizontal,
-      )
-
-      partition(
-        second,
-        x + firstWidth,
-        y,
-        width - firstWidth,
-        height,
-        !horizontal,
-      )
+      partition(first, x, y, firstWidth, height, !horizontal)
+      partition(second, x + firstWidth, y, width - firstWidth, height, !horizontal)
     } else {
       const firstHeight = height * ratio
-
-      partition(
-        first,
-        x,
-        y,
-        width,
-        firstHeight,
-        !horizontal,
-      )
-
-      partition(
-        second,
-        x,
-        y + firstHeight,
-        width,
-        height - firstHeight,
-        !horizontal,
-      )
+      partition(first, x, y, width, firstHeight, !horizontal)
+      partition(second, x, y + firstHeight, width, height - firstHeight, !horizontal)
     }
   }
 
@@ -220,86 +170,122 @@ function layout(items: TreemapItem[]): Rect[] {
   return result
 }
 
-const rectangles = computed(() =>
-  layout(items.value).map((rectangle) => ({
+const rectangles = computed<Rect[]>(() =>
+  layout(items.value).map((rectangle, idx) => ({
     ...rectangle,
     x: rectangle.x + GAP,
     y: rectangle.y + GAP,
     width: Math.max(rectangle.width - GAP * 2, 0),
     height: Math.max(rectangle.height - GAP * 2, 0),
+    colorIndex: idx % TILE_PALETTE.length,
   })),
 )
 
-function textFits(rectangle: Rect): boolean {
-  return rectangle.width >= 120 && rectangle.height >= 58
+function fitsTitle(rect: Rect): boolean {
+  return rect.width >= 50 && rect.height >= 28
+}
+
+function fitsMeta(rect: Rect): boolean {
+  return rect.width >= 80 && rect.height >= 50
+}
+
+function paletteOf(index: number) {
+  return (TILE_PALETTE[index % TILE_PALETTE.length] ?? TILE_PALETTE[0])!
 }
 </script>
 
 <template>
-  <section class="treemap">
-    <div class="treemap__header">
+  <section class="treemap" aria-labelledby="treemap-title">
+    <header class="treemap__header">
       <div>
-        <p class="treemap__eyebrow">STORAGE MAP</p>
-        <h2>Where your storage is going</h2>
-        <p>
-          Each block is an immediate directory under the scanned path.
-          Click a block to drill into it.
+        <span class="treemap__eyebrow">STORAGE MAP</span>
+        <h2 id="treemap-title">Where your storage is going</h2>
+        <p class="treemap__path" :title="rootPath">
+          <svg class="treemap__path-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-6l-2-2H5a2 2 0 0 0-2 2z" />
+          </svg>
+          <code>{{ rootPath }}</code>
         </p>
       </div>
 
-      <div class="treemap__total">
-        <span>Total scanned</span>
-        <strong>{{ formatBytes(result.totalSize, 1) }}</strong>
+      <div class="treemap__summary">
+        <div class="treemap__stat">
+          <span class="treemap__stat-label">Total Size</span>
+          <strong class="treemap__stat-value">{{ formatBytes(result.totalSize, 1) }}</strong>
+        </div>
+        <div class="treemap__stat">
+          <span class="treemap__stat-label">Subfolders</span>
+          <strong class="treemap__stat-value">{{items.filter(i => i.isDir).length}}</strong>
+        </div>
       </div>
-    </div>
+    </header>
 
-    <div v-if="rectangles.length" class="treemap__canvas">
-      <svg viewBox="0 0 1000 560" preserveAspectRatio="none" role="img" aria-label="Storage usage treemap">
-        <g v-for="(rectangle, index) in rectangles" :key="rectangle.item.id" class="treemap__tile" :class="{
-          'treemap__tile--inert': !canNavigateTile(rectangle.item),
-        }" role="button" :tabindex="canNavigateTile(rectangle.item) ? 0 : undefined"
-          :aria-label="`Drill into ${rectangle.item.path}`"
-          :aria-disabled="!canNavigateTile(rectangle.item) || navigating" @click="handleTileClick(rectangle.item)"
-          @keydown.enter.prevent="handleTileClick(rectangle.item)"
-          @keydown.space.prevent="handleTileClick(rectangle.item)">
-          <rect :x="rectangle.x" :y="rectangle.y" :width="rectangle.width" :height="rectangle.height" rx="6"
-            :class="`treemap__tile--${index % 6}`" />
+    <div v-if="rectangles.length" class="treemap__canvas-wrapper">
+      <svg class="treemap__svg" :viewBox="`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`" role="img"
+        aria-label="Interactive directory storage map">
+        <g v-for="rect in rectangles" :key="rect.item.id" class="treemap__tile" :class="{
+          'treemap__tile--inert': !canNavigateTile(rect.item),
+          'treemap__tile--hovered': hoveredItem?.id === rect.item.id,
+        }" tabindex="0" role="button"
+          :aria-label="`${rect.item.label}, ${formatBytes(rect.item.size)}, ${rect.item.percentage.toFixed(1)}%`"
+          @click="handleTileClick(rect.item)" @keydown.enter.prevent="handleTileClick(rect.item)"
+          @keydown.space.prevent="handleTileClick(rect.item)" @mouseenter="hoveredItem = rect.item"
+          @mouseleave="hoveredItem = null">
+          <!-- Tile Background -->
+          <rect :x="rect.x" :y="rect.y" :width="rect.width" :height="rect.height" rx="6"
+            :fill="paletteOf(rect.colorIndex).fill" :stroke="paletteOf(rect.colorIndex).border" stroke-width="1" />
 
-          <foreignObject v-if="textFits(rectangle)" :x="rectangle.x + 12" :y="rectangle.y + 10"
-            :width="Math.max(rectangle.width - 24, 1)" :height="Math.max(rectangle.height - 20, 1)">
-            <div class="treemap__label">
-              <strong>{{ rectangle.item.label }}</strong>
-              <span>{{ formatBytes(rectangle.item.size, 1) }}</span>
-              <small>
-                {{ rectangle.item.percentage.toFixed(1) }}%
-              </small>
-            </div>
-          </foreignObject>
+          <!-- Native SVG Text Rendering (Reliable scaling across viewports) -->
+          <g v-if="fitsTitle(rect)" class="treemap__label-group"
+            :transform="`translate(${rect.x + 10}, ${rect.y + 18})`">
+            <text class="treemap__tile-title" :fill="paletteOf(rect.colorIndex).text">
+              {{ rect.item.label }}
+            </text>
+
+            <text v-if="fitsMeta(rect)" y="18" class="treemap__tile-meta" :fill="paletteOf(rect.colorIndex).muted">
+              {{ formatBytes(rect.item.size, 1) }} • {{ rect.item.percentage.toFixed(1) }}%
+            </text>
+          </g>
 
           <title>
-            {{ rectangle.item.path }}
-            · {{ formatBytes(rectangle.item.size, 1) }}
-            · {{ rectangle.item.percentage.toFixed(1) }}%
-            · {{ canNavigateTile(rectangle.item) ? 'Click to drill down' : 'Files, not a directory' }}
+            {{ rect.item.label }} ({{ rect.item.path }})
+            &#10;Size: {{ formatBytes(rect.item.size, 1) }} ({{ rect.item.percentage.toFixed(1) }}%)
+            &#10;{{ canNavigateTile(rect.item) ? 'Click to navigate into directory' : 'Root directory files' }}
           </title>
         </g>
       </svg>
     </div>
 
     <div v-else class="treemap__empty">
+      <svg class="treemap__empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
       <strong>No storage data available</strong>
-      <span>Scan a directory containing files to see its storage map.</span>
+      <span>Scan a directory containing files to inspect storage usage.</span>
     </div>
 
+    <!-- Active Hover Detail Bar -->
+    <div class="treemap__detail-bar">
+      <template v-if="hoveredItem">
+        <span class="treemap__detail-name">{{ hoveredItem.label }}</span>
+        <span class="treemap__detail-path">{{ hoveredItem.path }}</span>
+        <div class="treemap__detail-metrics">
+          <strong>{{ formatBytes(hoveredItem.size, 1) }}</strong>
+          <small>{{ hoveredItem.percentage.toFixed(1) }}%</small>
+        </div>
+      </template>
+      <template v-else>
+        <span class="treemap__detail-hint">Hover or focus a block to view path details</span>
+      </template>
+    </div>
+
+    <!-- Quick Legend -->
     <div v-if="items.length" class="treemap__legend">
-      <div v-for="(item, index) in items.slice(0, 8)" :key="item.id" class="treemap__legend-item">
-        <span class="treemap__legend-dot" :class="`treemap__legend-dot--${index % 6}`" />
-
-        <span class="treemap__legend-name">
-          {{ item.label }}
-        </span>
-
-        <strong>{{ formatBytes(item.size, 1) }}</strong>
+      <div v-for="(item, index) in items.slice(0, 6)" :key="item.id" class="treemap__legend-item"
+        @mouseenter="hoveredItem = item" @mouseleave="hoveredItem = null">
+        <span class="treemap__legend-dot" :style="{ background: paletteOf(index).border }" />
+        <span class="treemap__legend-name">{{ item.label }}</span>
+        <strong class="treemap__legend-value">{{ formatBytes(item.size, 1) }}</strong>
       </div>
     </div>
   </section>
@@ -307,88 +293,127 @@ function textFits(rectangle: Rect): boolean {
 
 <style scoped>
 .treemap {
-  padding: 28px;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  background: #ffffff;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f8fafc;
+  --bg-hover: #f1f5f9;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
+  --accent: #2563eb;
+
+  padding: 24px;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
 .treemap__header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 22px;
+  gap: 20px;
+  margin-bottom: 20px;
 }
 
 .treemap__eyebrow {
-  margin: 0 0 5px;
-  color: #64748b;
+  color: var(--text-faint);
   font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .treemap h2 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 20px;
-  line-height: 1.25;
+  margin: 2px 0 0;
+  color: var(--text-main);
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-.treemap__header p:not(.treemap__eyebrow) {
+.treemap__path {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   margin: 6px 0 0;
-  color: #64748b;
-  font-size: 13px;
-}
-
-.treemap__total {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  white-space: nowrap;
-}
-
-.treemap__total span {
-  color: #64748b;
+  color: var(--text-muted);
   font-size: 12px;
 }
 
-.treemap__total strong {
-  margin-top: 2px;
-  color: #0f172a;
-  font-size: 18px;
+.treemap__path-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
 }
 
-.treemap__canvas {
-  width: 100%;
+.treemap__path code {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--bg-subtle);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+}
+
+.treemap__summary {
+  display: flex;
+  gap: 20px;
+}
+
+.treemap__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.treemap__stat-label {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.treemap__stat-value {
+  color: var(--text-main);
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.treemap__canvas-wrapper {
   overflow: hidden;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
-  background: #f1f5f9;
+  background: #0f172a;
 }
 
-.treemap__canvas svg {
+.treemap__svg {
   display: block;
   width: 100%;
-  min-height: 420px;
+  height: auto;
 }
 
 .treemap__tile {
   cursor: pointer;
+  outline: none;
 }
 
 .treemap__tile rect {
-  transition:
-    filter 160ms ease,
-    opacity 160ms ease;
+  transition: transform 150ms ease, filter 150ms ease, stroke-width 150ms ease;
+  transform-origin: center;
 }
 
-.treemap__tile:hover rect {
-  filter: brightness(0.92);
+.treemap__tile:hover rect,
+.treemap__tile--hovered rect {
+  filter: brightness(1.15);
+  stroke-width: 2px;
 }
 
-.treemap__tile:focus-visible {
-  outline: 2px dashed #0f172a;
-  outline-offset: 2px;
+.treemap__tile:focus-visible rect {
+  stroke: #ffffff;
+  stroke-width: 2px;
+  filter: brightness(1.2);
 }
 
 .treemap__tile--inert {
@@ -396,167 +421,152 @@ function textFits(rectangle: Rect): boolean {
 }
 
 .treemap__tile--inert rect {
-  stroke: #cbd5e1;
-  stroke-dasharray: 6 4;
-  stroke-width: 2;
+  stroke-dasharray: 4 3;
 }
 
-.treemap__tile--inert:hover rect {
-  filter: none;
+.treemap__tile-title {
+  font-size: 13px;
+  font-weight: 600;
+  pointer-events: none;
 }
 
-.treemap__tile--0 {
-  fill: #0f172a;
+.treemap__tile-meta {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
 }
 
-.treemap__tile--1 {
-  fill: #1e293b;
-}
-
-.treemap__tile--2 {
-  fill: #334155;
-}
-
-.treemap__tile--3 {
-  fill: #475569;
-}
-
-.treemap__tile--4 {
-  fill: #64748b;
-}
-
-.treemap__tile--5 {
-  fill: #94a3b8;
-}
-
-.treemap__label {
+.treemap__detail-bar {
   display: flex;
-  flex-direction: column;
-  color: #ffffff;
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    sans-serif;
-  line-height: 1.25;
-  overflow: hidden;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 40px;
+  margin-top: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--bg-subtle);
+  font-size: 12px;
 }
 
-.treemap__label strong {
+.treemap__detail-name {
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+.treemap__detail-path {
   overflow: hidden;
+  color: var(--text-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 14px;
-}
-
-.treemap__label span {
-  margin-top: 4px;
-  font-size: 12px;
-  opacity: 0.85;
-}
-
-.treemap__label small {
-  margin-top: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 11px;
-  opacity: 0.7;
+}
+
+.treemap__detail-metrics {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.treemap__detail-metrics strong {
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.treemap__detail-metrics small {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.treemap__detail-hint {
+  color: var(--text-faint);
+  font-style: italic;
 }
 
 .treemap__empty {
   display: flex;
-  min-height: 220px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  border: 1px dashed #cbd5e1;
+  gap: 8px;
+  padding: 48px;
+  border: 1px dashed var(--border-color);
   border-radius: 10px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
-.treemap__empty strong {
-  color: #334155;
+.treemap__empty-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--text-faint);
 }
 
 .treemap__legend {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 24px;
-  margin-top: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
 }
 
 .treemap__legend-item {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
-  font-size: 13px;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.treemap__legend-item:hover {
+  background: var(--bg-hover);
 }
 
 .treemap__legend-dot {
   width: 8px;
   height: 8px;
   border-radius: 2px;
-}
-
-.treemap__legend-dot--0 {
-  background: #0f172a;
-}
-
-.treemap__legend-dot--1 {
-  background: #1e293b;
-}
-
-.treemap__legend-dot--2 {
-  background: #334155;
-}
-
-.treemap__legend-dot--3 {
-  background: #475569;
-}
-
-.treemap__legend-dot--4 {
-  background: #64748b;
-}
-
-.treemap__legend-dot--5 {
-  background: #94a3b8;
+  flex-shrink: 0;
 }
 
 .treemap__legend-name {
-  min-width: 0;
   overflow: hidden;
-  color: #475569;
+  color: var(--text-muted);
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.treemap__legend-item strong {
-  color: #0f172a;
   font-size: 12px;
 }
 
-@media (max-width: 700px) {
-  .treemap {
-    padding: 20px;
-  }
+.treemap__legend-value {
+  margin-left: auto;
+  color: var(--text-main);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
 
+@media (max-width: 640px) {
   .treemap__header {
     flex-direction: column;
   }
 
-  .treemap__total {
+  .treemap__summary {
+    width: 100%;
+    justify-content: stroke;
+  }
+
+  .treemap__stat {
     align-items: flex-start;
   }
 
-  .treemap__canvas svg {
-    min-height: 320px;
-  }
-
-  .treemap__legend {
-    grid-template-columns: 1fr;
+  .treemap__detail-bar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 }
 </style>
