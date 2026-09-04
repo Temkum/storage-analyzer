@@ -82,13 +82,12 @@ function handleBreadcrumbNavigate(targetPath: string) {
         <p class="hero__eyebrow">DISK ANALYSIS</p>
 
         <h2>
-          Understand what is<br />
-          using your storage
+          Understand what is using your storage
         </h2>
 
         <p class="hero__description">
-          Scan a directory to identify large files, storage-heavy
-          directories, and file-type distribution.
+          Scan a directory to identify large files, storage heavy
+          directories, and file type distribution.
         </p>
       </div>
 
