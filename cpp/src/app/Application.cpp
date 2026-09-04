@@ -1,9 +1,12 @@
 #include <chrono>
+#include <iostream>
 #include <memory>
+#include <string>
 
 #include "system_analyzer/app/Application.hpp"
 
 #include "system_analyzer/core/DirectorySizeAggregator.hpp"
+#include "system_analyzer/network/NetworkCommandHandler.hpp"
 #include "system_analyzer/platform/factory.hpp"
 
 namespace system_analyzer::app
@@ -84,6 +87,45 @@ namespace system_analyzer::app
                     .count());
 
         return result;
+    }
+
+    int Application::runNetworkMode()
+    {
+        // Platform selection is resolved by the factory; no OS branching here.
+        auto provider = platform::createNetworkUsageProvider();
+        auto appProvider = platform::createApplicationNetworkProvider();
+
+        NetworkCommandHandler handler(*provider, *appProvider);
+
+        std::string line;
+
+        // Long-lived loop: one NDJSON request per stdin line, one NDJSON
+        // response per stdout line. Tauri keeps this process alive and
+        // samples it repeatedly, so the loop never terminates on its own.
+        while (std::getline(std::cin, line))
+        {
+            if (line.empty())
+            {
+                continue;
+            }
+
+            const std::string response = handler.handle(line);
+
+            // Flush after every response: Tauri matches one response per
+            // request and must never wait on stdout buffering.
+            std::cout << response << '\n';
+            std::cout.flush();
+
+            // The shutdown acknowledgement is the documented end-of-session
+            // response; any other response keeps the loop alive.
+            if (response.find("\"type\":\"shutdown_ack\"") !=
+                std::string::npos)
+            {
+                break;
+            }
+        }
+
+        return 0;
     }
 
 } // namespace system_analyzer::app

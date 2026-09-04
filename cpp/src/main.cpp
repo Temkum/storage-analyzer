@@ -1,6 +1,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <iostream>
+#include <string>
 
 #include "system_analyzer/app/Application.hpp"
 #include "system_analyzer/core/ScanContext.hpp"
@@ -36,6 +37,16 @@ namespace
 
 int main(int argc, char *argv[])
 {
+    // Long-lived network sidecar mode: stays alive, reads one NDJSON command
+    // per line from stdin and answers on stdout (see Application::
+    // runNetworkMode). Kept alongside the existing disk-scan entry path.
+    if (argc == 2 && std::string(argv[1]) == "--network")
+    {
+        system_analyzer::app::Application application;
+
+        return application.runNetworkMode();
+    }
+
     if (argc != 2)
     {
         std::cerr << "Usage: system-analyzer <directory>\n";

@@ -22,4 +22,12 @@ namespace system_analyzer::platform
         return std::make_unique<windows::WindowsVolumeProvider>();
     }
 
+    // Application attribution is not yet implemented on Windows (Phase 6 is
+    // Linux-first). Return nullptr so callers can detect absence gracefully.
+    std::unique_ptr<IApplicationNetworkProvider>
+    createApplicationNetworkProvider()
+    {
+        return nullptr;
+    }
+
 } // namespace system_analyzer::platform

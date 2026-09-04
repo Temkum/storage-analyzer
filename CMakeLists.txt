@@ -27,7 +27,7 @@ if(WIN32)
     set(SYSTEM_ANALYZER_PLATFORM_DIR windows)
     set(SIDECAR_TARGET_TRIPLE "x86_64-pc-windows-msvc" CACHE STRING
         "Tauri sidecar target triple")
-    set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}.exe")
+    set(SIDECAR_FILENAME "system-analyzer-engine-${SIDECAR_TARGET_TRIPLE}.exe")
 elseif(APPLE)
     set(SYSTEM_ANALYZER_PLATFORM_DIR macos)
     # Rust target triples name Apple Silicon "aarch64", while CMake reports
@@ -40,12 +40,12 @@ elseif(APPLE)
         set(SIDECAR_TARGET_TRIPLE "x86_64-apple-darwin" CACHE STRING
             "Tauri sidecar target triple")
     endif()
-    set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}")
+    set(SIDECAR_FILENAME "system-analyzer-engine-${SIDECAR_TARGET_TRIPLE}")
 else()
     set(SYSTEM_ANALYZER_PLATFORM_DIR linux)
     set(SIDECAR_TARGET_TRIPLE "${CMAKE_HOST_SYSTEM_PROCESSOR}-unknown-linux-gnu" CACHE STRING
         "Tauri sidecar target triple")
-    set(SIDECAR_FILENAME "system-analyzer-${SIDECAR_TARGET_TRIPLE}")
+    set(SIDECAR_FILENAME "system-analyzer-engine-${SIDECAR_TARGET_TRIPLE}")
 endif()
 
 message(STATUS "Platform layer: ${SYSTEM_ANALYZER_PLATFORM_DIR} (sidecar: ${SIDECAR_FILENAME})")
@@ -68,6 +68,10 @@ else()
     list(APPEND PLATFORM_SOURCES
         cpp/src/platform/linux/LinuxVolumeProvider.cpp
         cpp/src/platform/linux/LinuxDiskUsageProvider.cpp
+        cpp/src/platform/linux/LinuxNetworkUsageProvider.cpp
+        cpp/src/platform/linux/LinuxNetworkParser.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkProvider.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkParser.cpp
     )
 endif()
 
@@ -78,15 +82,18 @@ set(ENGINE_SOURCES
     cpp/src/core/SystemInfo.cpp
     cpp/src/core/DirectorySizeAggregator.cpp
     cpp/src/serialization/ScanResultSerializer.cpp
+    cpp/src/serialization/NetworkSnapshotSerializer.cpp
+    cpp/src/serialization/ApplicationNetworkSnapshotSerializer.cpp
+    cpp/src/network/NetworkCommandHandler.cpp
     ${PLATFORM_SOURCES}
 )
 
-add_executable(system-analyzer
+add_executable(system-analyzer-engine
     cpp/src/main.cpp
     ${ENGINE_SOURCES}
 )
 
-target_include_directories(system-analyzer
+target_include_directories(system-analyzer-engine
     PRIVATE
         cpp/include
         cpp/third_party
@@ -101,9 +108,9 @@ set(TAURI_BINARIES_DIR "${CMAKE_SOURCE_DIR}/apps/desktop/src-tauri/binaries")
 file(MAKE_DIRECTORY "${TAURI_BINARIES_DIR}")
 
 add_custom_command(
-    TARGET system-analyzer POST_BUILD
+    TARGET system-analyzer-engine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        $<TARGET_FILE:system-analyzer>
+        $<TARGET_FILE:system-analyzer-engine>
         "${TAURI_BINARIES_DIR}/${SIDECAR_FILENAME}"
     COMMENT "Staging sidecar binary for Tauri (${SIDECAR_FILENAME})"
 )
@@ -200,6 +207,76 @@ if(NOT WIN32)
         NAME linux-volume-provider
         COMMAND linux-volume-provider-test
     )
+
+    add_executable(linux-network-parser-test
+        cpp/tests/platform/LinuxNetworkParserTest.cpp
+        cpp/src/platform/linux/LinuxNetworkParser.cpp
+    )
+
+    target_include_directories(linux-network-parser-test
+        PRIVATE
+            cpp/include
+    )
+
+    add_test(
+        NAME linux-network-parser
+        COMMAND linux-network-parser-test
+    )
+
+    add_executable(linux-network-usage-test
+        cpp/tests/platform/LinuxNetworkUsageProviderTest.cpp
+        cpp/src/platform/linux/LinuxNetworkUsageProvider.cpp
+        cpp/src/platform/linux/LinuxNetworkParser.cpp
+    )
+
+    target_include_directories(linux-network-usage-test
+        PRIVATE
+            cpp/include
+    )
+
+    add_test(
+        NAME linux-network-usage
+        COMMAND linux-network-usage-test
+    )
+
+    # Deterministic parser/aggregation tests for application attribution.
+    # These run against fixture /proc content (no real processes) so the
+    # attribution pipeline is proven before relying on the live machine.
+    add_executable(linux-application-network-provider-test
+        cpp/tests/platform/LinuxApplicationNetworkProviderTest.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkProvider.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkParser.cpp
+    )
+
+    target_include_directories(linux-application-network-provider-test
+        PRIVATE
+            cpp/include
+    )
+
+    add_test(
+        NAME linux-application-network-provider
+        COMMAND linux-application-network-provider-test
+    )
+
+    # Real-machine integration test: builds the provider through the factory
+    # and asserts structural correctness (non-empty identity, non-negative
+    # counters) without expecting specific applications like Firefox.
+    add_executable(linux-application-schema-contract-test
+        cpp/tests/contract/ApplicationNetworkSchemaContractTest.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkProvider.cpp
+        cpp/src/platform/linux/LinuxApplicationNetworkParser.cpp
+        cpp/src/serialization/ApplicationNetworkSnapshotSerializer.cpp
+    )
+
+    target_include_directories(linux-application-schema-contract-test
+        PRIVATE
+            cpp/include
+    )
+
+    add_test(
+        NAME linux-application-schema-contract
+        COMMAND linux-application-schema-contract-test
+    )
 endif()
 
 # Cross-platform contract test
@@ -223,3 +300,67 @@ add_test(
     NAME scan-schema-contract
     COMMAND scan-schema-contract-test
 )
+
+# Cross-platform network schema contract test
+#
+# Same gate as scan-schema-contract, but for the network domain: builds the
+# provider through createNetworkUsageProvider(), takes a real snapshot and
+# asserts the serialized NetworkSnapshot keeps a stable JSON schema so every
+# future provider stays wire-compatible with the Tauri layer and Vue UI.
+
+add_executable(network-schema-contract-test
+    cpp/tests/contract/NetworkSchemaContractTest.cpp
+    ${ENGINE_SOURCES}
+)
+
+target_include_directories(network-schema-contract-test
+    PRIVATE
+        cpp/include
+        cpp/third_party
+)
+
+add_test(
+    NAME network-schema-contract
+    COMMAND network-schema-contract-test
+)
+
+# Network command handler tests
+#
+# Unit-level NDJSON protocol coverage (fake provider, no process spawn)
+# plus one integration test that forks/execs the real sidecar binary and
+# proves it stays alive across repeated requests and exits on shutdown.
+
+add_executable(network-command-handler-test
+    cpp/tests/network/NetworkCommandHandlerTest.cpp
+    cpp/src/network/NetworkCommandHandler.cpp
+    cpp/src/serialization/NetworkSnapshotSerializer.cpp
+    cpp/src/serialization/ApplicationNetworkSnapshotSerializer.cpp
+)
+
+target_include_directories(network-command-handler-test
+    PRIVATE
+        cpp/include
+        cpp/third_party
+)
+
+add_test(
+    NAME network-command-handler
+    COMMAND network-command-handler-test
+)
+
+if(NOT WIN32)
+    add_executable(network-sidecar-integration-test
+        cpp/tests/network/NetworkSidecarIntegrationTest.cpp
+    )
+
+    target_include_directories(network-sidecar-integration-test
+        PRIVATE
+            cpp/include
+            cpp/third_party
+    )
+
+    add_test(
+        NAME network-sidecar
+        COMMAND network-sidecar-integration-test $<TARGET_FILE:system-analyzer-engine>
+    )
+endif()

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatBytes } from '@/utils/format'
+import { formatBytes, formatRate } from '@/utils/format'
 
 describe('formatBytes', () => {
   it('formats zero as 0 B', () => {
@@ -29,5 +29,15 @@ describe('formatBytes', () => {
   it('honours a custom fraction digit count', () => {
     expect(formatBytes(1024, 1)).toBe('1.0 KB')
     expect(formatBytes(2.5 * 1024 ** 2, 0)).toBe('3 MB')
+  })
+})
+
+describe('formatRate', () => {
+  it('suffixes a per-second rate', () => {
+    expect(formatRate(12.4 * 1024 * 1024)).toBe('12.4 MB/s')
+  })
+
+  it('treats non-finite input as zero rate', () => {
+    expect(formatRate(Number.NaN)).toBe('0 B/s')
   })
 })
